@@ -9,12 +9,15 @@ export type AppId =
   | 'systemlogs'
   | 'notes'
   | 'mediaplayer'
+  | 'casefile'
   | 'settings'
   | 'trash'
+  | 'camera'
+  | 'memory'
+  | 'observer'
   | 'imageviewer'
   | 'textviewer'
   | 'hexviewer'
-  | 'audioPlayer'
   | 'realitycore';
 
 export interface WindowPosition {
@@ -38,7 +41,7 @@ export interface OSWindowState {
   isMinimized: boolean;
   isMaximized: boolean;
   zIndex: number;
-  customData?: any; // e.g. path for file explorer, note id, etc.
+  customData?: any;
 }
 
 export type ThemeName = 'void-cyan' | 'neon-magenta' | 'amber-crt' | 'matrix-green' | 'y2k-purple';
@@ -56,6 +59,7 @@ export interface OSSettings {
   clockFormat24: boolean;
   realityMode: boolean; // secret mode
   customCursor: boolean;
+  showObjectives: boolean;
 }
 
 export interface NotificationItem {
@@ -81,4 +85,12 @@ export interface DesktopIconItem {
   y: number;
   hidden?: boolean;
   corrupted?: boolean;
+}
+
+export interface GameObjective {
+  id: string;
+  title: string;
+  description: string;
+  isCompleted: boolean;
+  requiredAct?: number;
 }

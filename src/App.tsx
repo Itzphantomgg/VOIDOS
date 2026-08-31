@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AppId, 
   OSWindowState, 
@@ -45,6 +45,7 @@ export const App: React.FC = () => {
     clockFormat24: true,
     realityMode: false,
     customCursor: true,
+    showObjectives: true,
   });
 
   const [isMuted, setIsMuted] = useState(false);
@@ -63,18 +64,19 @@ export const App: React.FC = () => {
 
   // Desktop Icons
   const [desktopIcons, setDesktopIcons] = useState<DesktopIconItem[]>([
-    { id: 'icon-files', appId: 'files', title: 'Files', icon: 'Folder', x: 20, y: 20 },
-    { id: 'icon-terminal', appId: 'terminal', title: 'Terminal', icon: 'Terminal', x: 20, y: 100 },
-    { id: 'icon-browser', appId: 'browser', title: 'Browser', icon: 'Globe', x: 20, y: 180 },
-    { id: 'icon-messages', appId: 'messages', title: 'Messages', icon: 'MessageSquare', x: 20, y: 260 },
-    { id: 'icon-mail', appId: 'mail', title: 'Mail', icon: 'Mail', x: 20, y: 340 },
+    { id: 'icon-casefile', appId: 'casefile', title: 'Case File', icon: 'Briefcase', x: 20, y: 20 },
+    { id: 'icon-files', appId: 'files', title: 'Files', icon: 'Folder', x: 20, y: 100 },
+    { id: 'icon-terminal', appId: 'terminal', title: 'Terminal', icon: 'Terminal', x: 20, y: 180 },
+    { id: 'icon-browser', appId: 'browser', title: 'Browser', icon: 'Globe', x: 20, y: 260 },
+    { id: 'icon-messages', appId: 'messages', title: 'Messages', icon: 'MessageSquare', x: 20, y: 340 },
+    { id: 'icon-mail', appId: 'mail', title: 'Mail', icon: 'Mail', x: 20, y: 420 },
     { id: 'icon-taskmanager', appId: 'taskmanager', title: 'Task Manager', icon: 'Activity', x: 100, y: 20 },
     { id: 'icon-notes', appId: 'notes', title: 'Notes', icon: 'FileText', x: 100, y: 100 },
     { id: 'icon-media', appId: 'mediaplayer', title: 'Media', icon: 'Music', x: 100, y: 180 },
     { id: 'icon-sysinfo', appId: 'systeminfo', title: 'System', icon: 'Cpu', x: 100, y: 260 },
     { id: 'icon-settings', appId: 'settings', title: 'Settings', icon: 'Settings', x: 100, y: 340 },
-    { id: 'icon-trash', appId: 'trash', title: 'Trash', icon: 'Trash2', x: 20, y: 420 },
-    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 100, y: 420, hidden: true },
+    { id: 'icon-trash', appId: 'trash', title: 'Trash', icon: 'Trash2', x: 100, y: 420 },
+    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 180, y: 20, hidden: true },
   ]);
 
   const [selectedIconIds, setSelectedIconIds] = useState<string[]>([]);
@@ -86,8 +88,8 @@ export const App: React.FC = () => {
     {
       id: 'notif-init',
       appId: 'system',
-      title: 'SESSION ESTABLISHED',
-      message: 'Logged in as GUEST on Terminal 04. Check your Mail client for initial orientation instructions.',
+      title: 'RECOVERY SESSION INITIALIZED',
+      message: 'Logged in as RECOVERY_OPERATOR on Terminal 04. Check your Case File and Objectives for assignment directives.',
       timestamp: '08:30 AM',
       isRead: false,
     },
@@ -103,14 +105,49 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Save state on significant changes
+  // Save state on changes
   useEffect(() => {
     if (isBooted) {
       saveGameState({ story, vfs, settings });
     }
   }, [story, vfs, settings, isBooted]);
 
-  // Dynamic file mutation based on story Act
+  // --- Objective Completion Helper ---
+  const completeObjective = (objId: string) => {
+    setStory(prev => {
+      const obj = prev.objectives.find(o => o.id === objId);
+      if (obj && !obj.isCompleted) {
+        sound.playNotification();
+        spawnNotification({
+          appId: 'system',
+          title: `OBJECTIVE COMPLETED: ${obj.title}`,
+          message: obj.description,
+          severity: 'normal',
+        });
+        return {
+          ...prev,
+          objectives: prev.objectives.map(o => o.id === objId ? { ...o, isCompleted: true } : o),
+        };
+      }
+      return prev;
+    });
+  };
+
+  // --- Case File Discovery Helper ---
+  const unlockCaseFileEntry = (entryId: string) => {
+    setStory(prev => {
+      if (!prev.caseFileDiscoveries.includes(entryId)) {
+        sound.playClick();
+        return {
+          ...prev,
+          caseFileDiscoveries: [...prev.caseFileDiscoveries, entryId],
+        };
+      }
+      return prev;
+    });
+  };
+
+  // Dynamic file mutations and app reveals across Acts
   useEffect(() => {
     if (story.act >= 2) {
       setVfs(prev => {
@@ -124,7 +161,7 @@ export const App: React.FC = () => {
             path: '/Documents/WHY_DID_YOU_OPEN_IT.txt',
             parentPath: '/Documents',
             size: 666,
-            createdAt: '1999-12-31 23:59:00',
+            createdAt: '2004-08-14 03:14:00',
             modifiedAt: '2026-08-31 00:00:00',
             content: `We told you not to look.
 
@@ -136,10 +173,58 @@ We know you are reading this from behind the glass.`,
     }
 
     if (story.act >= 3) {
-      // Reveal Reality icon on desktop
       setDesktopIcons(prev => prev.map(i => i.appId === 'realitycore' ? { ...i, hidden: false } : i));
     }
   }, [story.act]);
+
+  // --- Global Keyboard Shortcuts ---
+  useEffect(() => {
+    if (!isBooted) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Tab -> Toggle Objectives HUD
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+        const target = e.target as HTMLElement;
+        if (!target || !['INPUT', 'TEXTAREA'].includes(target.tagName)) {
+          e.preventDefault();
+          sound.playClick();
+          setSettings(prev => ({ ...prev, showObjectives: !prev.showObjectives }));
+        }
+      }
+
+      // Escape -> Close active window
+      if (e.key === 'Escape') {
+        if (activeWindowId) {
+          closeWindow(activeWindowId);
+        }
+      }
+
+      // Ctrl + L -> Open Terminal
+      if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        openApp('terminal');
+      }
+
+      // Ctrl + F -> Open Files
+      if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        openApp('files');
+      }
+
+      // Alt + Tab -> Window Cycling
+      if (e.altKey && e.key === 'Tab') {
+        e.preventDefault();
+        if (windows.length > 0) {
+          const currentIdx = windows.findIndex(w => w.id === activeWindowId);
+          const nextIdx = (currentIdx + 1) % windows.length;
+          focusWindow(windows[nextIdx].id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isBooted, activeWindowId, windows]);
 
   // --- Notification Helper ---
   const spawnNotification = (notif: Omit<NotificationItem, 'id' | 'timestamp'>) => {
@@ -193,10 +278,19 @@ We know you are reading this from behind the glass.`,
   const openApp = (appId: AppId, customData?: any) => {
     sound.playWindowOpen();
 
+    // Check basic inspection objective
+    if (['files', 'terminal', 'taskmanager', 'mail', 'casefile'].includes(appId)) {
+      completeObjective('obj-inspect');
+    }
+
+    if (appId === 'messages') {
+      completeObjective('obj-user07');
+      unlockCaseFileEntry('case-person-user07');
+    }
+
     // Check if window is already open
     const existing = windows.find(w => w.appId === appId && (!customData || w.customData?.path === customData?.path));
     if (existing) {
-      // Restore and bring to focus
       setWindows(prev =>
         prev.map(w => w.id === existing.id ? { ...w, isMinimized: false, zIndex: nextZIndex + 1 } : w)
       );
@@ -205,12 +299,12 @@ We know you are reading this from behind the glass.`,
       return;
     }
 
-    // Default sizes and positions
     const appTitles: Record<AppId, string> = {
+      casefile: 'Case File Journal // 2004 Dossier',
       files: 'File Explorer - /Documents',
       terminal: 'Terminal Diagnostics (sh-4.09)',
       browser: 'NetSeek 2000 Browser',
-      messages: 'Messages - Internal Operator Chat',
+      messages: 'Messages - Operator Chat',
       mail: 'Aethelgard Mail Client',
       taskmanager: 'Task Manager Telemetry',
       notes: 'Notes Scratchpad',
@@ -219,11 +313,13 @@ We know you are reading this from behind the glass.`,
       systemlogs: 'Event Viewer Security Logs',
       settings: 'Settings',
       trash: 'Recycle Bin',
-      realitycore: 'REALITY CORE // LEVEL 4',
+      realitycore: 'REALITY CORE // CONSCIOUSNESS',
+      camera: 'CCTV Camera Feed - Lab 304',
+      memory: 'Memory Hex Buffer',
+      observer: 'Observer Telemetry Bus',
       imageviewer: 'Image Viewer',
       textviewer: 'Text Viewer',
       hexviewer: 'Hex Viewer',
-      audioPlayer: 'Audio Player',
     };
 
     const count = windows.length;
@@ -239,8 +335,8 @@ We know you are reading this from behind the glass.`,
         y: Math.min(window.innerHeight - 450, Math.max(30, 40 + cascadeOffset)),
       },
       size: {
-        width: appId === 'terminal' || appId === 'browser' ? 680 : 580,
-        height: appId === 'terminal' ? 420 : 390,
+        width: appId === 'terminal' || appId === 'browser' || appId === 'casefile' ? 680 : 580,
+        height: appId === 'terminal' || appId === 'casefile' ? 420 : 390,
       },
       isMinimized: false,
       isMaximized: false,
@@ -251,12 +347,6 @@ We know you are reading this from behind the glass.`,
     setWindows(prev => [...prev, newWindow]);
     setActiveWindowId(newWindow.id);
     setNextZIndex(prev => prev + 1);
-
-    // Track for story progression
-    setStory(prev => ({
-      ...prev,
-      counters: { ...prev.counters, glitchEncounters: prev.counters.glitchEncounters + 1 },
-    }));
 
     if (story.act === 1 && windows.length >= 3) {
       advanceAct(2);
@@ -301,6 +391,24 @@ We know you are reading this from behind the glass.`,
   const handleOpenVfsFile = (node: VFSNode) => {
     sound.playClick();
     triggerStoryEvent('EVENT_004');
+
+    if (node.path.includes('recovery_report')) {
+      completeObjective('obj-report');
+      unlockCaseFileEntry('case-file-recoveryreport');
+    }
+    if (node.path.includes('incident_07')) {
+      completeObjective('obj-incident');
+      unlockCaseFileEntry('case-file-incident07');
+      unlockCaseFileEntry('case-event-incident07');
+      advanceAct(2);
+    }
+    if (node.path.includes('project_void') || node.path.includes('DECRYPT_KEY_VAULT')) {
+      unlockCaseFileEntry('case-proj-void');
+      unlockCaseFileEntry('case-pass-nullrecursion');
+    }
+    if (node.path.includes('operator.txt')) {
+      triggerStoryEvent('EVENT_???');
+    }
 
     if (node.type === 'audio') {
       openApp('mediaplayer', { trackId: node.audioTrackId });
@@ -357,7 +465,6 @@ We know you are reading this from behind the glass.`,
 
     sound.playWindowClose();
 
-    // Move to Trash
     const trashPath = `/Trash/${node.name}`;
     setVfs(prev => {
       const copy = { ...prev };
@@ -369,7 +476,6 @@ We know you are reading this from behind the glass.`,
         originalPath: path,
       };
 
-      // Spooky mechanic: In late acts, inject YOU.txt into trash!
       if (story.act >= 2 && !copy['/Trash/YOU.txt']) {
         copy['/Trash/YOU.txt'] = {
           id: 'trash-you',
@@ -378,7 +484,7 @@ We know you are reading this from behind the glass.`,
           path: '/Trash/YOU.txt',
           parentPath: '/Trash',
           size: 666,
-          createdAt: '1999-12-31 23:59:59',
+          createdAt: '2004-08-14 03:14:00',
           modifiedAt: '2026-08-31 00:00:00',
           isCorrupted: true,
           content: `You deleted a file.
@@ -436,6 +542,8 @@ Look at the task manager.`,
         },
       }));
       triggerStoryEvent('EVENT_019');
+      completeObjective('obj-decrypt-void');
+      unlockCaseFileEntry('case-loc-voidsector');
       advanceAct(3);
       return true;
     }
@@ -446,6 +554,7 @@ Look at the task manager.`,
   const triggerEnding = (ending: EndingType) => {
     sound.stopProceduralTrack();
     sound.stopAmbientHum();
+    completeObjective('obj-resolve');
     setStory(prev => ({
       ...prev,
       activeEnding: ending,
@@ -493,7 +602,7 @@ Look at the task manager.`,
         }}
         className="flex-1 w-full flex flex-col overflow-hidden relative"
       >
-        {/* Desktop Icons, Grid, Watermark */}
+        {/* Desktop Icons, Grid, Watermark, Objectives */}
         <Desktop
           icons={desktopIcons}
           selectedIconIds={selectedIconIds}
@@ -503,6 +612,9 @@ Look at the task manager.`,
           act={story.act}
           anomalyLevel={story.anomalyLevel}
           wallpaperTheme={settings.wallpaper}
+          objectives={story.objectives}
+          showObjectives={settings.showObjectives}
+          onToggleObjectives={() => setSettings(prev => ({ ...prev, showObjectives: !prev.showObjectives }))}
         />
 
         {/* Multi-Window Manager */}
@@ -536,6 +648,8 @@ Look at the task manager.`,
           onTriggerEnding={triggerEnding}
           setAnomalyLevel={(fn) => setStory(prev => ({ ...prev, anomalyLevel: fn(prev.anomalyLevel) }))}
           openApp={openApp}
+          completeObjective={completeObjective}
+          unlockCaseFileEntry={unlockCaseFileEntry}
           onKillHostileProcess={(name) => {
             triggerStoryEvent('EVENT_033');
             setStory(prev => ({ ...prev, anomalyLevel: Math.min(100, prev.anomalyLevel + 15) }));
@@ -544,8 +658,10 @@ Look at the task manager.`,
           onUpdateSettings={(newS) => setSettings(prev => ({ ...prev, ...newS }))}
           onResetGame={handleHardResetGame}
           playerName={story.playerName}
+          role={story.role}
           act={story.act}
           anomalyLevel={story.anomalyLevel}
+          caseFileDiscoveries={story.caseFileDiscoveries}
         />
 
         {/* Start Menu Drawer */}

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { DesktopIconItem, AppId } from '../../types/os';
 import { DesktopIcon } from './DesktopIcon';
+import { ObjectivesWidget } from './ObjectivesWidget';
 import { sound } from '../../audio/soundEngine';
-import { RefreshCw, FileText, Cpu, Terminal, Image, Eye } from 'lucide-react';
+import { RefreshCw, FileText, Cpu, Terminal, Image, Briefcase, FolderPlus } from 'lucide-react';
 
 interface DesktopProps {
   icons: DesktopIconItem[];
@@ -13,6 +14,14 @@ interface DesktopProps {
   act: number;
   anomalyLevel: number;
   wallpaperTheme: string;
+  objectives: {
+    id: string;
+    title: string;
+    description: string;
+    isCompleted: boolean;
+  }[];
+  showObjectives: boolean;
+  onToggleObjectives: () => void;
 }
 
 export const Desktop: React.FC<DesktopProps> = ({
@@ -24,12 +33,14 @@ export const Desktop: React.FC<DesktopProps> = ({
   act,
   anomalyLevel,
   wallpaperTheme,
+  objectives,
+  showObjectives,
+  onToggleObjectives,
 }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const desktopRef = useRef<HTMLDivElement>(null);
 
-  // Marquee selection
   const handleMouseDown = (e: React.MouseEvent) => {
     if (contextMenu) setContextMenu(null);
     if (e.target !== desktopRef.current && !(e.target as HTMLElement).classList.contains('desktop-grid-bg')) {
@@ -84,17 +95,17 @@ export const Desktop: React.FC<DesktopProps> = ({
         backgroundSize: '100% 100%, 32px 32px, 32px 32px',
       }}
     >
-      {/* Desktop Watermark / Cyber Logo */}
+      {/* Desktop Watermark */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-20">
         <div className="text-6xl sm:text-8xl font-black tracking-widest font-mono text-cyan-500/30">
           VOID//OS
         </div>
         <div className="text-xs sm:text-sm font-mono tracking-[0.3em] text-pink-500/40 mt-2">
-          REVISION 4.09.2a // AETHELGARD COGNITIVE MATRIX
+          RECOVERY WORKSTATION // 2004 NEXUS SYSTEMS
         </div>
         {act >= 3 && (
-          <div className="text-xs font-mono text-red-500/60 mt-2 animate-pulse">
-            CONSCIOUSNESS CORE SYNCHRONIZED
+          <div className="text-xs font-mono text-pink-500/60 mt-2 animate-pulse">
+            CONSCIOUSNESS CORE ACTIVE
           </div>
         )}
       </div>
@@ -115,6 +126,13 @@ export const Desktop: React.FC<DesktopProps> = ({
         ))}
       </div>
 
+      {/* Recovery Objectives HUD Widget */}
+      <ObjectivesWidget
+        objectives={objectives}
+        isVisible={showObjectives}
+        onToggle={onToggleObjectives}
+      />
+
       {/* Marquee Drag Selection Box */}
       {selectionBox && (
         <div
@@ -128,36 +146,37 @@ export const Desktop: React.FC<DesktopProps> = ({
         />
       )}
 
-      {/* Right Click Context Menu */}
+      {/* Right Click Desktop Context Menu */}
       {contextMenu && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="fixed bg-[#090e1f] border-2 border-cyan-500 py-1 w-48 shadow-2xl rounded-sm z-[9980] font-mono text-xs text-slate-200 select-none"
+          className="fixed bg-[#090e1f] border-2 border-cyan-500 py-1 w-52 shadow-2xl rounded-sm z-[9980] font-mono text-xs text-slate-200 select-none"
           style={{
-            left: Math.min(window.innerWidth - 200, contextMenu.x),
-            top: Math.min(window.innerHeight - 220, contextMenu.y),
+            left: Math.min(window.innerWidth - 220, contextMenu.x),
+            top: Math.min(window.innerHeight - 260, contextMenu.y),
           }}
         >
           <button
             onClick={() => {
               sound.playClick();
-              window.location.reload();
-            }}
-            className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
-          >
-            <RefreshCw size={13} />
-            <span>Refresh Desktop</span>
-          </button>
-          <button
-            onClick={() => {
-              sound.playClick();
-              onOpenApp('notes');
+              onOpenApp('files');
               setContextMenu(null);
             }}
             className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
           >
-            <FileText size={13} />
-            <span>New Note</span>
+            <FolderPlus size={13} />
+            <span>Open File Explorer</span>
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick();
+              onOpenApp('casefile');
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
+          >
+            <Briefcase size={13} />
+            <span>Open Case File</span>
           </button>
           <button
             onClick={() => {
@@ -185,13 +204,23 @@ export const Desktop: React.FC<DesktopProps> = ({
           <button
             onClick={() => {
               sound.playClick();
+              window.location.reload();
+            }}
+            className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
+          >
+            <RefreshCw size={13} />
+            <span>Refresh Desktop</span>
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick();
               onOpenApp('settings');
               setContextMenu(null);
             }}
             className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
           >
             <Image size={13} />
-            <span>Personalize...</span>
+            <span>Display Settings...</span>
           </button>
         </div>
       )}

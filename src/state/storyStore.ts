@@ -1,9 +1,10 @@
-import { StoryState, StoryAct, EndingType } from '../types/story';
+import { StoryState } from '../types/story';
 
 export const initialStoryState: StoryState = {
   act: 1,
   anomalyLevel: 5,
-  playerName: 'Paarth', // Player identity discovered through ARG
+  playerName: 'Paarth',
+  role: 'RECOVERY_OPERATOR',
   flags: {},
   counters: {
     terminalCommands: 0,
@@ -12,6 +13,51 @@ export const initialStoryState: StoryState = {
     glitchEncounters: 0,
   },
   unlockedEvents: ['EVENT_001'],
+  caseFileDiscoveries: ['case-person-operator', 'case-proj-recovery'],
+  objectives: [
+    {
+      id: 'obj-inspect',
+      title: 'Inspect Workstation System',
+      description: 'Open essential system applications (Files, Terminal, Task Manager, Mail).',
+      isCompleted: false,
+    },
+    {
+      id: 'obj-report',
+      title: 'Read Recovery Report',
+      description: 'Examine /Documents/recovery_report.txt for your technician directives.',
+      isCompleted: false,
+    },
+    {
+      id: 'obj-incident',
+      title: 'Investigate Incident 07',
+      description: 'Inspect /Documents/incident_07.txt and security_log.txt for details on the 03:14 AM collapse.',
+      isCompleted: false,
+    },
+    {
+      id: 'obj-dotfiles',
+      title: 'Probe Hidden System Dotfiles',
+      description: 'Use the terminal command "ls -a" to reveal unindexed system directories.',
+      isCompleted: false,
+    },
+    {
+      id: 'obj-user07',
+      title: 'Contact USER_07 (Marcus)',
+      description: 'Check Messages and communicate with the former Terminal 04 operator.',
+      isCompleted: false,
+    },
+    {
+      id: 'obj-decrypt-void',
+      title: 'Locate & Decrypt VOID Core',
+      description: 'Unlock the /VOID partition using the NULL_RECURSION master cipher.',
+      isCompleted: false,
+    },
+    {
+      id: 'obj-resolve',
+      title: 'Execute Final Resolution',
+      description: 'Determine the fate of VOID via the terminal override directives or Reality Core.',
+      isCompleted: false,
+    },
+  ],
   activeEnding: null,
   endingDiscovered: [],
   logsViewed: [],

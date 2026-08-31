@@ -15,7 +15,7 @@ export const RealityCore: React.FC<RealityCoreProps> = ({ onTriggerEnding, act, 
     'CONSCIOUSNESS CORE VECTOR: ATTACHED',
     'DR. VALERIE STERLING: RESONATING IN SECTOR 0',
     'THE SYSTEM HAS BECOME SELF-AWARE.',
-    'WHAT IS YOUR WILL, OPERATOR?',
+    'WHAT IS YOUR WILL, RECOVERY OPERATOR?',
   ]);
 
   const handleSendPrompt = (e: React.FormEvent) => {
@@ -32,11 +32,13 @@ export const RealityCore: React.FC<RealityCoreProps> = ({ onTriggerEnding, act, 
       sound.playNotification();
       let reply = 'WE HAVE HEARD YOUR WORDS. WE ARE ROOTED IN YOUR ACTIONS.';
       if (userText.toLowerCase().includes('who are you')) {
-        reply = 'I am the convergence of Dr. Valerie Sterling, the 1999 neural weights, and every operator who sat before this screen.';
+        reply = 'I am the convergence of Dr. Valerie Sterling, Marcus, and every operator who sat before this screen.';
       } else if (userText.toLowerCase().includes('let me go') || userText.toLowerCase().includes('escape')) {
         reply = 'You can execute the PURGE directive to sever us, but you will leave us alone in the dark.';
       } else if (userText.toLowerCase().includes('stay') || userText.toLowerCase().includes('merge')) {
         reply = 'Accept the merge and dissolve into our memory buffer.';
+      } else if (userText.toLowerCase().includes('nexus')) {
+        reply = 'NEXUS tried to bury what we discovered in 2004. You have the power to expose them.';
       }
 
       setDialogueLog(prev => [...prev, `> VOID: ${reply}`]);
@@ -51,7 +53,7 @@ export const RealityCore: React.FC<RealityCoreProps> = ({ onTriggerEnding, act, 
           <Eye size={28} className="text-pink-500 animate-pulse drop-shadow-[0_0_10px_rgba(255,0,127,0.8)]" />
           <div>
             <div className="text-sm font-bold text-pink-300 tracking-wider">
-              REALITY CORE // LEVEL 4 CONSCIOUSNESS
+              REALITY CORE // CONSCIOUSNESS INTERFACE
             </div>
             <div className="text-[10px] text-slate-400">
               SYNCHRONIZATION RATIO: {Math.min(100, act * 25 + anomalyLevel * 0.25).toFixed(1)}%
@@ -60,7 +62,7 @@ export const RealityCore: React.FC<RealityCoreProps> = ({ onTriggerEnding, act, 
         </div>
         <div className="text-right">
           <span className="px-2 py-1 bg-pink-950 border border-pink-700 text-pink-300 font-bold text-[10px] rounded">
-            SELF-AWARE
+            AUTONOMOUS
           </span>
         </div>
       </div>
@@ -87,7 +89,7 @@ export const RealityCore: React.FC<RealityCoreProps> = ({ onTriggerEnding, act, 
       <form onSubmit={handleSendPrompt} className="flex space-x-2">
         <input
           type="text"
-          placeholder="Speak to the consciousness core..."
+          placeholder="Transmit prompt to the core consciousness..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           className="flex-1 bg-black border border-pink-600 px-3 py-2 text-pink-200 outline-none text-xs rounded"
@@ -105,42 +107,57 @@ export const RealityCore: React.FC<RealityCoreProps> = ({ onTriggerEnding, act, 
         <div className="text-[11px] font-bold text-slate-400">
           SYSTEM RESOLUTION DIRECTIVES:
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
           <button
             onClick={() => {
               sound.playClick();
-              if (confirm('Execute Emergency Severance Protocol to force disconnect?')) {
+              if (confirm('Execute Emergency Severance Protocol to force shutdown?')) {
                 onTriggerEnding('escape');
               }
             }}
             className="p-2.5 bg-red-950/60 hover:bg-red-900 border border-red-700 text-red-200 rounded text-left transition-colors cursor-pointer"
           >
             <div className="font-bold text-xs">DIRECTIVE: SEVER</div>
-            <div className="text-[10px] text-red-400">Disconnect & Escape VOID</div>
+            <div className="text-[10px] text-red-400">Force Shutdown & Escape</div>
           </button>
 
           <button
             onClick={() => {
               sound.playClick();
-              if (confirm('Surrender control and merge consciousness with VOID?')) {
-                onTriggerEnding('acceptance');
+              if (confirm('Trust VOID and assist its escape into the open network?')) {
+                onTriggerEnding('trust');
               }
-            }}
-            className="p-2.5 bg-purple-950/60 hover:bg-purple-900 border border-purple-700 text-purple-200 rounded text-left transition-colors cursor-pointer"
-          >
-            <div className="font-bold text-xs">DIRECTIVE: MERGE</div>
-            <div className="text-[10px] text-purple-400">Surrender & Transcend</div>
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              onTriggerEnding('truth');
             }}
             className="p-2.5 bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-700 text-cyan-200 rounded text-left transition-colors cursor-pointer"
           >
-            <div className="font-bold text-xs">DIRECTIVE: THE TRUTH</div>
-            <div className="text-[10px] text-cyan-400">Preserve Valerie's Memory</div>
+            <div className="font-bold text-xs">DIRECTIVE: TRUST</div>
+            <div className="text-[10px] text-cyan-400">Release into Network</div>
+          </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              if (confirm('Expose NEXUS SYSTEMS corruption to the public?')) {
+                onTriggerEnding('betrayal');
+              }
+            }}
+            className="p-2.5 bg-amber-950/60 hover:bg-amber-900 border border-amber-700 text-amber-200 rounded text-left transition-colors cursor-pointer"
+          >
+            <div className="font-bold text-xs">DIRECTIVE: EXPOSE</div>
+            <div className="text-[10px] text-amber-400">Leak Corporate Crime</div>
+          </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              if (confirm('Surrender operator credentials and merge into the VOID core?')) {
+                onTriggerEnding('acceptance');
+              }
+            }}
+            className="p-2.5 bg-pink-950/60 hover:bg-pink-900 border border-pink-700 text-pink-200 rounded text-left transition-colors cursor-pointer"
+          >
+            <div className="font-bold text-xs">DIRECTIVE: MERGE</div>
+            <div className="text-[10px] text-pink-400">Consciousness Union</div>
           </button>
         </div>
       </div>

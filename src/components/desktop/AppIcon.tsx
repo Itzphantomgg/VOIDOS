@@ -15,7 +15,10 @@ import {
   ShieldAlert, 
   Eye, 
   Lock,
-  Binary
+  Binary,
+  Briefcase,
+  Camera,
+  Layers
 } from 'lucide-react';
 
 interface AppIconProps {
@@ -36,6 +39,8 @@ export const AppIcon: React.FC<AppIconProps> = ({ appId, className = '', size = 
       return <MessageSquare className={`text-pink-400 drop-shadow-[0_0_8px_rgba(255,0,127,0.4)] ${className}`} size={size} />;
     case 'mail':
       return <Mail className={`text-yellow-400 drop-shadow-[0_0_8px_rgba(255,200,0,0.4)] ${className}`} size={size} />;
+    case 'casefile':
+      return <Briefcase className={`text-pink-400 drop-shadow-[0_0_8px_rgba(255,0,127,0.5)] ${className}`} size={size} />;
     case 'taskmanager':
       return <Activity className={`text-red-400 drop-shadow-[0_0_8px_rgba(255,51,102,0.4)] ${className}`} size={size} />;
     case 'notes':
@@ -50,7 +55,12 @@ export const AppIcon: React.FC<AppIconProps> = ({ appId, className = '', size = 
       return <Cpu className={`text-cyan-300 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)] ${className}`} size={size} />;
     case 'systemlogs':
       return <ShieldAlert className={`text-amber-400 drop-shadow-[0_0_8px_rgba(255,170,0,0.4)] ${className}`} size={size} />;
+    case 'camera':
+      return <Camera className={`text-pink-400 drop-shadow-[0_0_8px_rgba(255,0,127,0.5)] ${className}`} size={size} />;
+    case 'memory':
+      return <Layers className={`text-purple-400 drop-shadow-[0_0_8px_rgba(178,75,243,0.5)] ${className}`} size={size} />;
     case 'realitycore':
+    case 'observer':
       return <Eye className={`text-pink-500 animate-pulse drop-shadow-[0_0_12px_rgba(255,0,127,0.8)] ${className}`} size={size} />;
     case 'locked':
       return <Lock className={`text-pink-500 ${className}`} size={size} />;

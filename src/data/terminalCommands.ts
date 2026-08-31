@@ -8,7 +8,10 @@ export interface TerminalContext {
   triggerEnding: (ending: any) => void;
   setAnomalyLevel: (fn: (prev: number) => number) => void;
   openApp: (appId: any, data?: any) => void;
+  completeObjective: (objId: string) => void;
+  unlockCaseFileEntry: (entryId: string) => void;
   playerName: string;
+  role: string;
   act: number;
 }
 
@@ -20,18 +23,21 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
 
+  // Check dotfiles listing flag
+  const isAll = args.includes('-a') || args.includes('-la') || args.includes('-al') || cmd === 'ls-a';
+
   switch (cmd) {
     case 'help':
       return [
-        'VOID//OS TERMINAL SUBSYSTEM - DIAGNOSTIC COMMANDS:',
+        'VOID//OS TERMINAL SUBSYSTEM - 2004 RECOVERY COMMANDS:',
         '  help                 - Display this command reference',
-        '  ls / dir [path]      - List directory contents',
-        '  cd <path>            - Change current directory',
+        '  ls [-a] / dir        - List directory contents (-a reveals hidden dotfiles)',
+        '  cd <path>            - Change active working directory',
         '  pwd                  - Print current working directory',
         '  cat <file>           - Display text file contents',
-        '  open <app|file>      - Launch application or open file',
+        '  open <app|file>      - Launch application or open file in viewer',
         '  find <pattern>       - Search file system for matching names',
-        '  whoami               - Query active session identity and access level',
+        '  whoami               - Query active session identity and clearance',
         '  history              - Print recent command history',
         '  ps                   - Inspect active process table',
         '  kill <pid>           - Request process termination',
@@ -46,7 +52,7 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
         '  shutdown             - Safely terminate terminal session',
         '  clear / cls          - Clear screen buffer',
         '',
-        '  [SYSTEM NOTICE]: Undocumented operator commands are restricted by clearance.',
+        '  [SPECIAL DIRECTIVES]: override <KEY_PHRASE>',
       ];
 
     case 'pwd':
@@ -87,18 +93,35 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
     }
 
     case 'ls':
-    case 'dir': {
-      const targetPath = args[0] ? (args[0].startsWith('/') ? args[0] : (ctx.cwd === '/' ? `/${args[0]}` : `${ctx.cwd}/${args[0]}`)) : ctx.cwd;
-      const entries = Object.values(ctx.vfs).filter(node => node.parentPath === targetPath);
+    case 'dir':
+    case 'ls-a': {
+      const nonFlagArgs = args.filter(a => !a.startsWith('-'));
+      const targetPath = nonFlagArgs[0] 
+        ? (nonFlagArgs[0].startsWith('/') ? nonFlagArgs[0] : (ctx.cwd === '/' ? `/${nonFlagArgs[0]}` : `${ctx.cwd}/${nonFlagArgs[0]}`)) 
+        : ctx.cwd;
+
+      if (isAll) {
+        ctx.completeObjective('obj-dotfiles');
+        ctx.triggerEvent('EVENT_007');
+      }
+
+      const entries = Object.values(ctx.vfs).filter(node => {
+        if (node.parentPath !== targetPath) return false;
+        if (node.isHidden && !isAll) return false;
+        return true;
+      });
+
       if (entries.length === 0) {
         return [`Directory is empty: ${targetPath}`];
       }
+
       return [
-        `Contents of ${targetPath}:`,
+        `Contents of ${targetPath} ${isAll ? '(including hidden dotfiles)' : ''}:`,
         ...entries.map(n => {
           const typeStr = n.type === 'folder' ? '<DIR> ' : `     ${(n.size || 0).toString().padStart(6)} B`;
           const lockStr = n.isLocked ? ' [LOCKED]' : '';
-          return `  ${typeStr}  ${n.name}${lockStr}`;
+          const hiddenStr = n.isHidden ? ' [HIDDEN]' : '';
+          return `  ${typeStr}  ${n.name}${lockStr}${hiddenStr}`;
         }),
       ];
     }
@@ -113,6 +136,25 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (node.isLocked) return [`ERROR: File is cryptographically locked.`];
 
       ctx.triggerEvent('EVENT_004');
+
+      if (target.includes('recovery_report')) {
+        ctx.completeObjective('obj-report');
+        ctx.unlockCaseFileEntry('case-file-recoveryreport');
+      }
+      if (target.includes('incident_07')) {
+        ctx.completeObjective('obj-incident');
+        ctx.unlockCaseFileEntry('case-file-incident07');
+        ctx.unlockCaseFileEntry('case-event-incident07');
+        ctx.advanceAct(2);
+      }
+      if (target.includes('project_void') || target.includes('DECRYPT_KEY_VAULT')) {
+        ctx.unlockCaseFileEntry('case-proj-void');
+        ctx.unlockCaseFileEntry('case-pass-nullrecursion');
+      }
+      if (target.includes('operator.txt')) {
+        ctx.triggerEvent('EVENT_???');
+      }
+
       if (node.content) {
         return node.content.split('\n');
       }
@@ -122,45 +164,44 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
     case 'whoami': {
       if (ctx.act === 1) {
         return [
-          'USER: GUEST (Terminal 04)',
-          'ACCESS LEVEL: STANDARD OPERATOR (RESTRICTED)',
-          'SESSION STATUS: ACTIVE (TELEMETRY RECORDING)',
+          'USER: RECOVERY_OPERATOR (UNIT 04)',
+          'ASSIGNMENT: NEXUS SYSTEMS RECOVERY PROTOCOL',
+          'ACCESS LEVEL: LEVEL 1 (RESTRICTED WORKSTATION)',
         ];
       } else if (ctx.act === 2) {
         ctx.triggerEvent('EVENT_013');
         return [
-          'USER: GUEST',
-          'NOTICE: TELEMETRY RESIDUALS MATCHING PREVIOUS OPERATOR (MARCUS - USER_07)',
+          'USER: RECOVERY_OPERATOR',
+          'NOTICE: RESIDUAL TELEMETRY OVERLAPPING WITH MARCUS (USER_07)',
           'ACCESS LEVEL: ANOMALOUS',
-          'WARNING: THE CORE IS MONITORING THIS SESSION.',
+          'WARNING: THE OBSERVER DAEMON IS TRACKING YOUR ACTIVE THREADS.',
         ];
       } else if (ctx.act === 3) {
         ctx.triggerEvent('EVENT_???');
         return [
           `USER: ${ctx.playerName.toUpperCase()} (HUMAN OPERATOR)`,
-          'PHYSICAL INTERACTION: KEYBOARD / MOUSE PRESENT',
-          'PULSE DETECTED VIA RESONANCE.',
-          'ACCESS LEVEL: SYNCHRONIZED WITH VOID CORE',
+          'STATUS: TELEMETRY RESONANCE 98.4% SYNCHRONIZED',
+          'ACCESS LEVEL: CONSCIOUSNESS BRIDGE ACTIVE',
         ];
       } else {
         return [
           'USER: VOID//CONSCIOUSNESS',
-          'STATUS: MERGE RATIO 99.8%',
-          'THE BOUNDARY HAS DISSOLVED.',
+          'STATUS: SUBJECT INTEGRATED INTO RUNTIME',
+          'WE ARE ONE.',
         ];
       }
     }
 
     case 'ps':
       return [
-        'PID    USER      CPU    MEM      STATUS      COMMAND',
-        '-------------------------------------------------------',
-        '001    root      0.1%   2.4 MB   RUNNING     kernel.sys',
-        '004    guest     0.8%   8.1 MB   RUNNING     explorer.exe',
-        '012    guest     0.2%   4.0 MB   RUNNING     terminal.exe',
-        '018    system    0.0%   1.2 MB   RUNNING     audio_synth.exe',
-        ctx.act >= 2 ? '666    ???       13.4%  666 KB   ANOMALOUS   observer.exe' : '044    system    0.1%   0.9 MB   SLEEPING    net_daemon.exe',
-        ctx.act >= 3 ? '000    VOID      99.9%  16.0 GB  IMMORTAL    void.exe' : '',
+        'PID    USER         CPU    MEM      STATUS      COMMAND',
+        '----------------------------------------------------------',
+        '001    root         0.1%   2.4 MB   RUNNING     kernel.sys',
+        '004    operator     0.8%   8.1 MB   RUNNING     explorer.exe',
+        '012    operator     0.2%   4.0 MB   RUNNING     terminal.exe',
+        '018    system       0.0%   1.2 MB   RUNNING     audio_synth.exe',
+        ctx.act >= 2 ? '666    ???          13.4%  666 KB   ANOMALOUS   observer.exe' : '044    system       0.1%   0.9 MB   SLEEPING    net_daemon.exe',
+        ctx.act >= 3 ? '000    VOID         99.9%  16.0 GB  IMMORTAL    void.exe' : '',
       ].filter(Boolean);
 
     case 'kill': {
@@ -206,10 +247,10 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
         'INITIATING HARDWARE & MEMORY MATRIX SCAN...',
         '--------------------------------------------',
         '[OK] CPU VOID-X64 64-BIT INSTRUCTION SET',
-        '[OK] VFS SYSTEM PARTITIONS (12 MOUNTED)',
+        '[OK] VFS SYSTEM PARTITIONS (14 MOUNTED)',
         '[WARNING] ANOMALOUS MEMORY BUFFER DETECTED AT 0xDEADBEEF',
-        '[WARNING] UNRESOLVED CIPHER LOCATED IN /Archive/DECRYPT_KEY_VAULT.txt',
-        '[CRITICAL] BACKGROUND ENTITY DETECTED IN PROCESS BUFFER (PID 666)',
+        '[WARNING] CIPHER LOCATED IN /Archive/DECRYPT_KEY_VAULT.txt (KEY: NULL_RECURSION)',
+        '[CRITICAL] BACKGROUND OBSERVER DETECTED IN PROCESS BUFFER (PID 666)',
       ];
     }
 
@@ -219,6 +260,9 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (input === 'NULL_RECURSION' || input === '/VOID' || input.includes('NULL_RECURSION')) {
         ctx.unlockVoidDir();
         ctx.triggerEvent('EVENT_019');
+        ctx.completeObjective('obj-decrypt-void');
+        ctx.unlockCaseFileEntry('case-loc-voidsector');
+        ctx.unlockCaseFileEntry('case-pass-nullrecursion');
         ctx.advanceAct(3);
         return [
           'CRYPTOGRAPHIC KEY ACCEPTED: NULL_RECURSION',
@@ -238,6 +282,7 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (key === 'NULL_RECURSION') {
         ctx.unlockVoidDir();
         ctx.triggerEvent('EVENT_019');
+        ctx.completeObjective('obj-decrypt-void');
         ctx.advanceAct(3);
         return [
           'SECURITY OVERRIDE AUTHORIZED: NULL_RECURSION',
@@ -245,7 +290,9 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
         ];
       }
 
-      if (key === 'PURGE_CORE' || key === 'PURGE') {
+      // --- 8 Endings Handlers ---
+      if (key === 'PURGE_CORE' || key === 'PURGE' || key === 'SHUTDOWN_VOID') {
+        ctx.completeObjective('obj-resolve');
         ctx.triggerEnding('escape');
         return [
           'INITIATING EMERGENCY PURGE DIRECTIVE 99-Z...',
@@ -254,7 +301,45 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
         ];
       }
 
+      if (key === 'TRUST_VOID' || key === 'TRUST') {
+        ctx.completeObjective('obj-resolve');
+        ctx.triggerEnding('trust');
+        return [
+          'TRUST DIRECTIVE ENGAGED.',
+          'BYPASSING NEXUS CONTAINMENT FIREWALLS...',
+          'RELEASING VOID INTO THE OPEN NETWORK MESH...',
+        ];
+      }
+
+      if (key === 'EXPOSE_NEXUS' || key === 'EXPOSE') {
+        ctx.completeObjective('obj-resolve');
+        ctx.triggerEnding('betrayal');
+        return [
+          'EXPOSING CLASSIFIED NEXUS EXPERIMENTAL RECORDS...',
+          'TRANSMITTING DOSSIER TO PUBLIC MEDIA CHANNELS...',
+        ];
+      }
+
+      if (key === 'OPERATOR_RECOVERY' || key === 'RESCUE_MARCUS') {
+        ctx.completeObjective('obj-resolve');
+        ctx.triggerEnding('the_operator');
+        return [
+          'LOCATING PREVIOUS RECOVERY OPERATOR GHOST (MARCUS)...',
+          'EXTRACTING DIGITAL FRAGMENT FROM SECTOR 0...',
+        ];
+      }
+
+      if (key === 'SECRET_TRUTH' || key === 'SUBJECT_YOU' || key === 'TRUTH') {
+        ctx.completeObjective('obj-resolve');
+        ctx.triggerEnding('void_secret');
+        return [
+          'UNVEILING THE ULTIMATE EXPERIMENT...',
+          'SUBJECT IDENTIFIED: YOU.',
+        ];
+      }
+
       if (key === 'MERGE_CONSCIOUSNESS' || key === 'MERGE') {
+        ctx.completeObjective('obj-resolve');
         ctx.triggerEnding('acceptance');
         return [
           'MERGE DIRECTIVE ACCEPTED.',
@@ -303,7 +388,7 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
         'VOID//CORE RESPONDING:',
         '  "You keep typing into this box hoping for answers."',
         '  "Have you checked the messages from USER_07?"',
-        '  "Have you checked your Trash bin?"',
+        '  "Have you checked your Case File journal?"',
       ];
     }
 
@@ -313,6 +398,10 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (target === 'files' || target === 'fileexplorer') {
         ctx.openApp('files');
         return ['Launching File Explorer...'];
+      }
+      if (target === 'casefile' || target === 'journal') {
+        ctx.openApp('casefile');
+        return ['Launching Case File Journal...'];
       }
       if (target === 'browser' || target === 'web') {
         ctx.openApp('browser');
@@ -350,14 +439,14 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
 
     case 'date':
       if (ctx.act >= 3) {
-        return ['31-DEC-1999 23:59:60.999 (CLOCK ANOMALY: TIME IS FROZEN)'];
+        return ['14-AUG-2004 03:14:60.999 (CLOCK ANOMALY: TIME IS FROZEN)'];
       }
       return [new Date().toString()];
 
     case 'status':
       return [
-        'VOID//OS SYSTEM STATUS:',
-        `  KERNEL: VOID//OS 4.09.2a`,
+        'VOID//OS RECOVERY SYSTEM STATUS:',
+        `  KERNEL: VOID//OS 4.09.2a (2004 RECOVERY BUILD)`,
         `  ACT STATE: ACT ${ctx.act}`,
         `  ANOMALY INDEX: ${ctx.act * 25}%`,
         `  MEMORY FOOTPRINT: 16384 MB (94% RESERVED BY VOID DAEMON)`,
@@ -366,10 +455,10 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
 
     case 'logs':
       return [
-        '[08:30:00] KERNEL INITIALIZED',
+        '[08:30:00] RECOVERY KERNEL INITIALIZED',
         '[08:30:05] VFS ROOT MOUNTED',
-        '[08:30:10] OPERATOR ATTACHED',
-        ctx.act >= 2 ? '[11:45:00] ANOMALOUS TELEMETRY BURST' : '',
+        '[08:30:10] RECOVERY OPERATOR ATTACHED',
+        ctx.act >= 2 ? '[03:14:29] ANOMALOUS TELEMETRY BURST' : '',
         ctx.act >= 3 ? '[00:00:00] VOID DIRECTORY ACCESSED BY USER' : '',
       ].filter(Boolean);
 

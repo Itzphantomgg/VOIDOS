@@ -15,6 +15,7 @@ import { SystemInfo } from '../apps/SystemInfo/SystemInfo';
 import { SystemLogs } from '../apps/SystemLogs/SystemLogs';
 import { Settings } from '../apps/Settings/Settings';
 import { Trash } from '../apps/Trash/Trash';
+import { CaseFile } from '../apps/CaseFile/CaseFile';
 import { RealityCore } from '../apps/RealityCore/RealityCore';
 
 interface WindowManagerProps {
@@ -43,13 +44,17 @@ interface WindowManagerProps {
   onTriggerEnding: (ending: any) => void;
   setAnomalyLevel: (fn: (prev: number) => number) => void;
   openApp: (appId: AppId, data?: any) => void;
+  completeObjective: (objId: string) => void;
+  unlockCaseFileEntry: (entryId: string) => void;
   onKillHostileProcess: (name: string) => void;
   settings: any;
   onUpdateSettings: (newSettings: any) => void;
   onResetGame: () => void;
   playerName: string;
+  role: string;
   act: number;
   anomalyLevel: number;
+  caseFileDiscoveries: string[];
 }
 
 export const WindowManager: React.FC<WindowManagerProps> = ({
@@ -77,13 +82,17 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   onTriggerEnding,
   setAnomalyLevel,
   openApp,
+  completeObjective,
+  unlockCaseFileEntry,
   onKillHostileProcess,
   settings,
   onUpdateSettings,
   onResetGame,
   playerName,
+  role,
   act,
   anomalyLevel,
+  caseFileDiscoveries,
 }) => {
   const renderAppContent = (win: OSWindowState) => {
     switch (win.appId) {
@@ -98,6 +107,14 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
             onCreateFolder={onCreateVfsFolder}
             onDeleteFile={onDeleteVfsFile}
             onUnlockVoid={onUnlockVoid}
+            act={act}
+          />
+        );
+
+      case 'casefile':
+        return (
+          <CaseFile
+            unlockedEntryIds={caseFileDiscoveries}
             act={act}
           />
         );
@@ -124,7 +141,10 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
             triggerEnding={onTriggerEnding}
             setAnomalyLevel={setAnomalyLevel}
             openApp={openApp}
+            completeObjective={completeObjective}
+            unlockCaseFileEntry={unlockCaseFileEntry}
             playerName={playerName}
+            role={role}
             act={act}
           />
         );

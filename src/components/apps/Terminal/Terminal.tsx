@@ -13,7 +13,10 @@ interface TerminalProps {
   triggerEnding: (ending: any) => void;
   setAnomalyLevel: (fn: (prev: number) => number) => void;
   openApp: (appId: any, data?: any) => void;
+  completeObjective: (objId: string) => void;
+  unlockCaseFileEntry: (entryId: string) => void;
   playerName: string;
+  role: string;
   act: number;
 }
 
@@ -41,7 +44,7 @@ export const Terminal: React.FC<TerminalProps> = (props) => {
 
   const promptPrefix = props.act >= 3
     ? `VOID//ROOT:${props.cwd}#`
-    : `GUEST@VOID-OS:${props.cwd}$`;
+    : `OPERATOR@VOID-OS:${props.cwd}$`;
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -81,7 +84,10 @@ export const Terminal: React.FC<TerminalProps> = (props) => {
           triggerEnding: props.triggerEnding,
           setAnomalyLevel: props.setAnomalyLevel,
           openApp: props.openApp,
+          completeObjective: props.completeObjective,
+          unlockCaseFileEntry: props.unlockCaseFileEntry,
           playerName: props.playerName,
+          role: props.role,
           act: props.act,
         });
 
@@ -125,8 +131,7 @@ export const Terminal: React.FC<TerminalProps> = (props) => {
       }
     } else if (e.key === 'Tab') {
       e.preventDefault();
-      // Simple autocomplete
-      const availableCmds = ['help', 'ls', 'cd', 'cat', 'whoami', 'ps', 'kill', 'ping', 'scan', 'decrypt', 'status', 'logs', 'manifest', 'override', 'void', 'clear'];
+      const availableCmds = ['help', 'ls', 'ls -a', 'cd', 'cat', 'whoami', 'ps', 'kill', 'ping', 'scan', 'decrypt', 'status', 'logs', 'manifest', 'override', 'void', 'clear'];
       const match = availableCmds.find(c => c.startsWith(inputVal.toLowerCase()));
       if (match) {
         setInputVal(match);

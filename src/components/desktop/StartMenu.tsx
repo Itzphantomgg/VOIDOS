@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppId } from '../../types/os';
 import { AppIcon } from './AppIcon';
 import { sound } from '../../audio/soundEngine';
-import { Power, RotateCcw, Search, ShieldAlert, Cpu } from 'lucide-react';
+import { Power, RotateCcw, Search, ShieldAlert } from 'lucide-react';
 
 interface StartMenuProps {
   isOpen: boolean;
@@ -30,13 +30,14 @@ export const StartMenu: React.FC<StartMenuProps> = ({
   if (!isOpen) return null;
 
   const appItems: { id: AppId; title: string; desc: string }[] = [
+    { id: 'casefile', title: 'Case File Journal', desc: 'Story Dossier & Objectives' },
     { id: 'files', title: 'File Explorer', desc: 'Browse Virtual File System' },
     { id: 'terminal', title: 'Terminal Diagnostics', desc: 'Monospace Command Line' },
     { id: 'browser', title: 'NetSeek Browser', desc: 'Intranet & Web Archive' },
-    { id: 'messages', title: 'Messages', desc: 'Internal Operator Chat' },
+    { id: 'messages', title: 'Messages', desc: 'Operator Chat Channel' },
     { id: 'mail', title: 'Mail Client', desc: 'Aethelgard Email' },
     { id: 'taskmanager', title: 'Task Manager', desc: 'Process Telemetry' },
-    { id: 'notes', title: 'Notes', desc: 'Operator Scratchpad' },
+    { id: 'notes', title: 'Notes', desc: 'Technician Scratchpad' },
     { id: 'mediaplayer', title: 'VoidPlayer Media', desc: 'Audio & Synth Visualizer' },
     { id: 'systeminfo', title: 'System Diagnostics', desc: 'Hardware & Neural Metrics' },
     { id: 'systemlogs', title: 'Event Viewer Logs', desc: 'Real-time Security Telemetry' },
@@ -70,7 +71,7 @@ export const StartMenu: React.FC<StartMenuProps> = ({
           </div>
           <div>
             <div className="text-cyan-300 font-bold text-sm tracking-wider">VOID//OS</div>
-            <div className="text-[10px] text-slate-400">OPERATOR: GUEST // TERMINAL 04</div>
+            <div className="text-[10px] text-slate-400">RECOVERY UNIT // TERMINAL 04</div>
           </div>
         </div>
         <div className="text-right">
@@ -122,7 +123,7 @@ export const StartMenu: React.FC<StartMenuProps> = ({
         <div className="w-32 bg-[#050814] border-l border-slate-800 p-2 flex flex-col justify-between text-[10px] text-slate-400">
           <div className="space-y-2">
             <div className="text-cyan-400 font-bold border-b border-slate-800 pb-1">
-              SYSTEM
+              STATUS
             </div>
             <div>
               <div className="text-slate-500">ANOMALY:</div>
@@ -135,14 +136,14 @@ export const StartMenu: React.FC<StartMenuProps> = ({
               </div>
             </div>
             <div>
-              <div className="text-slate-500">RAM USAGE:</div>
-              <div className="text-slate-300">14.8 / 16 GB</div>
+              <div className="text-slate-500">ASSIGNMENT:</div>
+              <div className="text-cyan-300 font-bold">RECOVERY</div>
             </div>
           </div>
 
           <div className="pt-2 border-t border-slate-800 space-y-1">
             <div className="text-[9px] text-slate-600 text-center">
-              AETHELGARD LABS
+              NEXUS SYSTEMS
             </div>
           </div>
         </div>
