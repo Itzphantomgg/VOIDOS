@@ -819,7 +819,7 @@ Look at the task manager.`,
     <div className="h-full w-full overflow-hidden flex flex-col relative">
       {/* 1. Landing Page View */}
       {viewMode === 'landing' && (
-        <LandingPage onLaunchGame={() => setViewMode('boot')} />
+        <LandingPage onLaunchGame={() => setViewMode('boot')} storyState={story} />
       )}
 
       {/* 2. Boot Screen Sequence */}
@@ -887,12 +887,12 @@ Look at the task manager.`,
           }}
           className="flex-1 w-full flex flex-col overflow-hidden relative"
         >
-          {/* Subtle Top-Right Fullscreen Symbol Control */}
-          <div className="absolute top-2.5 right-72 sm:right-84 z-[9970]">
+          {/* Subtle Bottom-Right Fullscreen Symbol Control (Quiet corner, no overlap) */}
+          <div className="absolute bottom-11 right-2 z-[9970]">
             <button
               onClick={toggleFullscreen}
-              className="p-1.5 bg-[#060a18]/85 hover:bg-cyan-950 border border-cyan-700/70 text-cyan-300 text-[10px] font-mono rounded shadow-retro-cyan flex items-center justify-center cursor-pointer transition-all"
-              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              className="p-1 bg-[#060a18]/90 hover:bg-slate-800 border border-slate-700/80 text-slate-400 hover:text-cyan-300 text-[10px] font-mono rounded flex items-center justify-center cursor-pointer transition-colors"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
             >
               {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>

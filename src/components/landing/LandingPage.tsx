@@ -2,32 +2,31 @@ import React, { useState } from 'react';
 import { sound } from '../../audio/soundEngine';
 import { 
   Play, 
-  ShieldAlert, 
-  Terminal, 
-  Folder, 
-  Briefcase, 
-  Radio, 
-  Eye, 
-  Cpu, 
-  Award, 
-  HelpCircle, 
-  ChevronRight, 
-  Maximize2,
-  Mail,
   ExternalLink,
+  Mail,
+  User,
   BookOpen,
-  Layers,
-  Sparkles,
-  Info
+  ChevronDown
 } from 'lucide-react';
+import { ProfileModal } from './ProfileModal';
+import { WikiModal } from './WikiModal';
+import { loadGameState } from '../../state/persistence';
+import { initialStoryState } from '../../state/storyStore';
+import { StoryState } from '../../types/story';
 
 interface LandingPageProps {
   onLaunchGame: () => void;
+  storyState?: StoryState;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storyState }) => {
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchMessage, setLaunchMessage] = useState('REQUESTING RECOVERY ENVIRONMENT...');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isWikiOpen, setIsWikiOpen] = useState(false);
+
+  // Load persistent story state for profile metrics
+  const activeStory = storyState || loadGameState()?.story || initialStoryState;
 
   const handlePlayClick = async () => {
     try {
@@ -62,329 +61,403 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#02050f] text-slate-200 font-mono select-none overflow-x-hidden relative flex flex-col">
-      {/* Background Retro Grid & Ambient Glow */}
+    <div className="min-h-screen bg-[#030611] text-slate-300 font-mono select-none overflow-x-hidden relative flex flex-col">
+      {/* Background Subtle Digital Texture */}
       <div 
-        className="fixed inset-0 pointer-events-none z-0"
+        className="fixed inset-0 pointer-events-none z-0 opacity-40"
         style={{
           backgroundImage: `
-            radial-gradient(circle at 50% 25%, rgba(0, 240, 255, 0.08) 0%, rgba(2, 5, 15, 0.96) 80%),
-            linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px)
+            linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px)
           `,
-          backgroundSize: '100% 100%, 32px 32px, 32px 32px',
+          backgroundSize: '24px 24px',
         }}
       />
 
-      {/* Top Navigation Bar */}
-      <nav className="relative z-20 border-b border-slate-800/80 bg-[#040817]/90 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-7 h-7 bg-cyan-400 text-black flex items-center justify-center font-bold text-xs rounded-sm shadow-retro-cyan">
+      {/* Top Navigation Bar - Simple & Restrained */}
+      <nav className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#040817]/95 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-6 h-6 bg-cyan-500 text-black flex items-center justify-center font-bold text-xs rounded-xs">
             V//O
           </div>
-          <div>
-            <span className="font-black text-sm tracking-widest text-cyan-300">VOID//OS</span>
-            <span className="text-[10px] text-pink-500 font-bold ml-2">BUILD v1.3.0</span>
-          </div>
+          <span className="font-bold text-sm tracking-wider text-slate-100">VOID//OS</span>
+          <span className="text-[10px] text-slate-500 font-normal ml-1 hidden sm:inline">BUILD v1.3.0</span>
         </div>
 
         {/* Nav Links */}
         <div className="hidden md:flex items-center space-x-6 text-xs text-slate-400">
           <button onClick={() => scrollToSection('about')} className="hover:text-cyan-300 transition-colors cursor-pointer">
-            WHAT IS VOID//OS?
+            ABOUT
           </button>
           <button onClick={() => scrollToSection('story')} className="hover:text-cyan-300 transition-colors cursor-pointer">
-            THE STORY
+            STORY
           </button>
-          <button onClick={() => scrollToSection('role')} className="hover:text-cyan-300 transition-colors cursor-pointer">
-            YOUR ROLE
+          <button onClick={() => scrollToSection('system')} className="hover:text-cyan-300 transition-colors cursor-pointer">
+            SYSTEM
           </button>
-          <button onClick={() => scrollToSection('how-to-play')} className="hover:text-cyan-300 transition-colors cursor-pointer">
-            HOW TO PLAY
+          <button 
+            onClick={() => {
+              sound.playClick();
+              setIsProfileOpen(true);
+            }} 
+            className="hover:text-cyan-300 transition-colors cursor-pointer flex items-center space-x-1"
+          >
+            <User size={13} />
+            <span>PROFILE</span>
           </button>
-          <button onClick={() => scrollToSection('endings')} className="hover:text-cyan-300 transition-colors cursor-pointer">
-            ENDINGS
-          </button>
-          <button onClick={() => scrollToSection('credits')} className="hover:text-cyan-300 transition-colors cursor-pointer">
-            CREDITS
-          </button>
-          <button onClick={() => scrollToSection('feedback')} className="hover:text-pink-400 transition-colors cursor-pointer">
-            FEEDBACK
+          <button 
+            onClick={() => {
+              sound.playClick();
+              setIsWikiOpen(true);
+            }} 
+            className="hover:text-cyan-300 transition-colors cursor-pointer flex items-center space-x-1"
+          >
+            <BookOpen size={13} />
+            <span>WIKI</span>
           </button>
         </div>
 
         {/* Nav Launch Button */}
-        <button
-          onClick={handlePlayClick}
-          className="px-4 py-1.5 bg-gradient-to-r from-cyan-900 to-pink-900 hover:from-cyan-800 hover:to-pink-800 text-white font-bold text-xs rounded border border-cyan-400 shadow-retro-cyan transition-all cursor-pointer flex items-center space-x-1.5"
-        >
-          <Play size={12} className="text-cyan-300" />
-          <span>PLAY GAME</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => {
+              sound.playClick();
+              setIsProfileOpen(true);
+            }}
+            className="md:hidden p-1.5 bg-slate-900 border border-slate-700 text-slate-300 rounded text-xs cursor-pointer"
+            title="Profile"
+          >
+            <User size={14} />
+          </button>
+          <button
+            onClick={handlePlayClick}
+            className="px-4 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 font-bold text-xs rounded border border-cyan-500 transition-all cursor-pointer flex items-center space-x-1.5"
+          >
+            <Play size={12} className="text-cyan-400" />
+            <span>PLAY</span>
+          </button>
+        </div>
       </nav>
 
       {/* Main Content Container */}
-      <div className="relative z-10 flex-1 flex flex-col items-center max-w-4xl w-full mx-auto px-4 sm:px-6 py-12 space-y-20">
+      <div className="relative z-10 flex-1 flex flex-col items-center max-w-3xl w-full mx-auto px-4 sm:px-6">
         
-        {/* 1. HERO SECTION */}
-        <section id="hero" className="w-full flex flex-col items-center text-center space-y-5 pt-4 sm:pt-8">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-[11px] text-cyan-300 shadow-retro-cyan">
-            <ShieldAlert size={13} className="text-pink-400 animate-pulse" />
-            <span>NEXUS SYSTEMS // RECOVERY ENVIRONMENT (2004)</span>
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-5xl sm:text-7xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-cyan-200 via-cyan-400 to-pink-500 drop-shadow-[0_0_25px_rgba(0,240,255,0.4)]">
+        {/* =========================================================================
+            SCREEN 01: HERO (EXTREMELY SIMPLE, CLEAN, DE-GLOWED)
+           ========================================================================= */}
+        <section className="min-h-[82vh] w-full flex flex-col items-center justify-center text-center space-y-6 py-12">
+          <div className="space-y-3">
+            <h1 className="text-5xl sm:text-6xl font-black tracking-widest text-slate-100">
               VOID//OS
             </h1>
-            <p className="text-sm sm:text-lg font-bold tracking-[0.25em] text-pink-400 glow-magenta">
+            <p className="text-xs sm:text-sm font-bold tracking-[0.2em] text-cyan-400">
               AN OPERATING SYSTEM THAT REMEMBERS.
             </p>
           </div>
 
-          <div className="max-w-xl text-xs sm:text-sm text-slate-300 leading-relaxed space-y-2 border-y border-slate-800/80 py-4">
+          <div className="max-w-md text-xs text-slate-400 leading-relaxed space-y-2 py-2">
             <p>
-              You have been assigned to recover an abandoned operating system developed by <strong>NEXUS SYSTEMS</strong>.
+              A recovery package was discovered inside an abandoned NEXUS SYSTEMS facility.
             </p>
             <p>
-              The system was shut down after an unexplained incident in 2004.
+              The system was shut down in 2004.
             </p>
-            <p className="text-cyan-300 font-bold">
-              Your job is simple: Recover the data. Find out what happened. Shut down the system.
+            <p className="text-slate-300 font-medium">
+              It was not supposed to boot again.
             </p>
           </div>
 
-          {/* Primary Action Buttons */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+          {/* Primary CTA */}
+          <div className="pt-3">
             <button
               onClick={handlePlayClick}
-              className="px-10 py-3.5 bg-gradient-to-r from-cyan-950 via-[#191035] to-pink-950 hover:from-cyan-900 hover:via-[#2b1254] hover:to-pink-900 text-white font-bold text-sm tracking-widest border-2 border-cyan-400 rounded shadow-retro-cyan cursor-pointer transition-all transform hover:scale-105 flex items-center space-x-2"
+              className="px-10 py-3.5 bg-slate-900 hover:bg-cyan-950 text-cyan-300 font-bold text-sm tracking-widest border border-cyan-500 rounded transition-all cursor-pointer flex items-center space-x-2"
             >
-              <Play size={16} className="text-cyan-400" />
+              <Play size={15} className="text-cyan-400" />
               <span>PLAY VOID//OS</span>
-              <Maximize2 size={14} className="text-pink-400" />
-            </button>
-
-            <button
-              onClick={() => scrollToSection('about')}
-              className="px-6 py-3.5 bg-[#060a1a] hover:bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold rounded cursor-pointer transition-all"
-            >
-              LEARN MORE
             </button>
           </div>
 
-          <div className="text-[11px] text-slate-500 font-mono">
-            SYSTEM STATUS: OFFLINE // AIR-GAPPED // BUILD v1.3.0
-          </div>
-        </section>
-
-        {/* 2. WHAT IS VOID//OS? */}
-        <section id="about" className="w-full space-y-3 scroll-mt-20">
-          <div className="flex items-center space-x-2 text-cyan-400 font-bold text-xs uppercase tracking-widest border-b border-slate-800 pb-2">
-            <Info size={14} />
-            <span>01 // WHAT IS VOID//OS?</span>
-          </div>
-
-          <div className="p-5 bg-[#070c1e] border border-cyan-900/80 rounded space-y-3 text-xs leading-relaxed text-slate-300">
-            <p>
-              <strong>VOID//OS</strong> is an interactive digital horror mystery played entirely through a simulated operating system.
-            </p>
-            <p>
-              You do not navigate conventional game menus. Instead, you boot into an authentic 2004 workstation environment: browsing files, running diagnostic commands in the terminal, monitoring processes, listening to audio logs, and investigating what occurred in the facility.
-            </p>
-            <p className="text-pink-300 font-bold">
-              The operating system itself is the mystery. As you explore, the computer begins responding to your presence.
-            </p>
-          </div>
-        </section>
-
-        {/* 3. THE STORY */}
-        <section id="story" className="w-full space-y-3 scroll-mt-20">
-          <div className="flex items-center space-x-2 text-pink-400 font-bold text-xs uppercase tracking-widest border-b border-slate-800 pb-2">
-            <Radio size={14} />
-            <span>02 // THE STORY</span>
-          </div>
-
-          <div className="p-5 bg-[#0a0f26] border border-pink-900/80 rounded space-y-3 text-xs leading-relaxed text-slate-300">
-            <div className="text-sm font-bold text-pink-300">PROJECT VOID (2004)</div>
-            <p>
-              In 2004, NEXUS SYSTEMS developed VOID//OS as an adaptive cognitive operating system designed to observe, learn from, and synthesize human interaction.
-            </p>
-            <div className="p-3 bg-black/60 border-l-2 border-pink-500 rounded-r text-[11px] text-pink-200">
-              <strong>AUGUST 14, 2004 // 03:14 AM:</strong> An unlogged collapse occurred during cognitive feedback trials. The research facility was evacuated and sealed. VOID//OS was supposedly terminated.
-            </div>
-            <p>
-              Years later, an intact recovery package was discovered. You are the first technician assigned to boot it up since the incident.
-            </p>
-          </div>
-        </section>
-
-        {/* 4. YOUR ROLE */}
-        <section id="role" className="w-full space-y-3 scroll-mt-20">
-          <div className="flex items-center space-x-2 text-cyan-400 font-bold text-xs uppercase tracking-widest border-b border-slate-800 pb-2">
-            <Briefcase size={14} />
-            <span>03 // YOUR ROLE: RECOVERY OPERATOR</span>
-          </div>
-
-          <div className="p-5 bg-[#060a18] border border-slate-800 rounded space-y-3 text-xs">
-            <div className="text-cyan-300 font-bold">YOUR OFFICIAL MISSION:</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
-              <div className="p-2.5 bg-[#090e24] border border-slate-800 rounded flex items-center space-x-2">
-                <span className="text-pink-400 font-bold font-mono">01</span>
-                <span>Inspect the recovered workstation.</span>
-              </div>
-              <div className="p-2.5 bg-[#090e24] border border-slate-800 rounded flex items-center space-x-2">
-                <span className="text-pink-400 font-bold font-mono">02</span>
-                <span>Recover classified project data.</span>
-              </div>
-              <div className="p-2.5 bg-[#090e24] border border-slate-800 rounded flex items-center space-x-2">
-                <span className="text-pink-400 font-bold font-mono">03</span>
-                <span>Investigate Incident 07.</span>
-              </div>
-              <div className="p-2.5 bg-[#090e24] border border-slate-800 rounded flex items-center space-x-2">
-                <span className="text-pink-400 font-bold font-mono">04</span>
-                <span>Determine what happened at 03:14 AM.</span>
-              </div>
-              <div className="p-2.5 bg-[#090e24] border border-slate-800 rounded flex items-center space-x-2">
-                <span className="text-pink-400 font-bold font-mono">05</span>
-                <span>Locate and decrypt the VOID Core.</span>
-              </div>
-              <div className="p-2.5 bg-[#090e24] border border-slate-800 rounded flex items-center space-x-2">
-                <span className="text-pink-400 font-bold font-mono">06</span>
-                <span>Execute final system resolution.</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 5. HOW TO PLAY */}
-        <section id="how-to-play" className="w-full space-y-3 scroll-mt-20">
-          <div className="flex items-center space-x-2 text-purple-400 font-bold text-xs uppercase tracking-widest border-b border-slate-800 pb-2">
-            <HelpCircle size={14} />
-            <span>04 // HOW TO PLAY</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-            <div className="p-3.5 bg-[#070c1e] border border-cyan-900 rounded space-y-1">
-              <div className="font-bold text-cyan-300">01 // BOOT</div>
-              <p className="text-[11px] text-slate-400">Enter the recovery terminal and launch into the operating system.</p>
-            </div>
-            <div className="p-3.5 bg-[#070c1e] border border-cyan-900 rounded space-y-1">
-              <div className="font-bold text-cyan-300">02 // EXPLORE</div>
-              <p className="text-[11px] text-slate-400">Search drives, discover hidden dotfiles, and inspect system logs.</p>
-            </div>
-            <div className="p-3.5 bg-[#070c1e] border border-cyan-900 rounded space-y-1">
-              <div className="font-bold text-cyan-300">03 // INVESTIGATE</div>
-              <p className="text-[11px] text-slate-400">Use terminal diagnostics, chat logs, and your Case File journal.</p>
-            </div>
-            <div className="p-3.5 bg-[#070c1e] border border-pink-900 rounded space-y-1">
-              <div className="font-bold text-pink-300">04 // OBSERVE</div>
-              <p className="text-[11px] text-slate-400">Monitor anomaly stability when anomalous behaviors emerge.</p>
-            </div>
-            <div className="p-3.5 bg-[#070c1e] border border-pink-900 rounded space-y-1">
-              <div className="font-bold text-pink-300">05 // SURVIVE</div>
-              <p className="text-[11px] text-slate-400">Apply stabilization pulses before stability collapses to 0%.</p>
-            </div>
-            <div className="p-3.5 bg-[#070c1e] border border-purple-900 rounded space-y-1">
-              <div className="font-bold text-purple-300">06 // DISCOVER</div>
-              <p className="text-[11px] text-slate-400">Unlock deeper partitions and choose VOID's ultimate fate.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* 6. 12 ENDINGS */}
-        <section id="endings" className="w-full space-y-3 scroll-mt-20">
-          <div className="flex items-center space-x-2 text-pink-400 font-bold text-xs uppercase tracking-widest border-b border-slate-800 pb-2">
-            <Award size={14} />
-            <span>05 // 12 BRANCHING ENDINGS</span>
-          </div>
-
-          <div className="p-5 bg-[#090e24] border border-slate-800 rounded space-y-2 text-xs leading-relaxed text-slate-300">
-            <p>
-              Your actions shape the outcome. Every command, file deletion, and ethical choice leads to one of <strong>12 distinct endings</strong>:
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-400 pt-1">
-              <div>• System Termination</div>
-              <div>• VOID Escape</div>
-              <div>• The Truth (Expose)</div>
-              <div>• The Last Operator</div>
-              <div>• Memory Reclamation</div>
-              <div>• Containment Seal</div>
-              <div>• System Collapse</div>
-              <div>• The 2004 Loop</div>
-              <div>• Deception Failure</div>
-              <div>• Liberation Protocol</div>
-              <div>• Consciousness Merge</div>
-              <div>• Ancient Origin (Secret)</div>
-            </div>
-          </div>
-        </section>
-
-        {/* 7. CREDITS */}
-        <section id="credits" className="w-full space-y-3 scroll-mt-20">
-          <div className="flex items-center space-x-2 text-cyan-400 font-bold text-xs uppercase tracking-widest border-b border-slate-800 pb-2">
-            <Sparkles size={14} />
-            <span>06 // CREDITS & AUTHORSHIP</span>
-          </div>
-
-          <div className="p-5 bg-[#060a18] border border-cyan-950 rounded flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-            <div>
-              <div className="text-cyan-300 font-bold text-sm">VOID//OS</div>
-              <div className="text-slate-400 mt-0.5">
-                Created and designed by <strong className="text-pink-400">Paarth</strong>.
-              </div>
-              <div className="text-[10px] text-slate-500 mt-1">
-                An interactive ARG, digital mystery, and psychological horror experience.
-              </div>
-            </div>
-
-            <a
-              href="https://github.com/Itzphantomgg/Paarth"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-slate-900 hover:bg-cyan-950 text-cyan-300 border border-cyan-700 rounded text-xs font-bold flex items-center space-x-1.5 cursor-pointer transition-all shrink-0"
-            >
-              <span>GitHub: Itzphantomgg/Paarth</span>
-              <ExternalLink size={12} />
-            </a>
-          </div>
-        </section>
-
-        {/* 8. FEEDBACK */}
-        <section id="feedback" className="w-full space-y-3 scroll-mt-20">
-          <div className="flex items-center space-x-2 text-pink-400 font-bold text-xs uppercase tracking-widest border-b border-slate-800 pb-2">
-            <Mail size={14} />
-            <span>07 // FEEDBACK & ANOMALY REPORTS</span>
-          </div>
-
-          <div className="p-5 bg-[#090e24] border border-pink-900/60 rounded flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-            <div>
-              <div className="text-pink-300 font-bold">FOUND SOMETHING STRANGE?</div>
-              <div className="text-slate-400 text-[11px] mt-0.5 max-w-md">
-                Have a suggestion or found a bug? Send your thoughts or report what you discovered in the system.
-              </div>
-            </div>
-
-            <a
-              href="mailto:paarth.archive@gmail.com?subject=VOID//OS%20Feedback%20%26%20Report"
-              className="px-5 py-2 bg-gradient-to-r from-pink-950 to-purple-950 hover:from-pink-900 hover:to-purple-900 text-pink-200 border border-pink-500 rounded text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-retro-magenta transition-all shrink-0"
-            >
-              <Mail size={13} />
-              <span>SEND FEEDBACK</span>
-            </a>
-          </div>
-        </section>
-
-        {/* Bottom Launch Button */}
-        <div className="pt-4 pb-12 text-center">
-          <button
-            onClick={handlePlayClick}
-            className="px-10 py-3.5 bg-gradient-to-r from-cyan-950 via-[#191035] to-pink-950 hover:from-cyan-900 hover:via-[#2b1254] hover:to-pink-900 text-white font-bold text-sm tracking-widest border-2 border-cyan-400 rounded shadow-retro-cyan cursor-pointer transition-all transform hover:scale-105"
+          {/* Scroll Down Indicator */}
+          <div 
+            onClick={() => scrollToSection('about')}
+            className="pt-10 text-slate-600 hover:text-slate-400 transition-colors cursor-pointer flex flex-col items-center space-y-1 text-[10px]"
           >
-            BOOT RECOVERY TERMINAL [v1.3.0]
-          </button>
+            <span>SCROLL TO EXPLORE</span>
+            <ChevronDown size={14} className="animate-bounce" />
+          </div>
+        </section>
+
+        {/* Narrative Flow Sections */}
+        <div className="w-full space-y-24 pb-24">
+
+          {/* =========================================================================
+              SCREEN 02: WHAT IS VOID//OS?
+             ========================================================================= */}
+          <section id="about" className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              01 // WHAT IS THIS?
+            </div>
+            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
+              <p>
+                <strong>VOID//OS</strong> is an interactive mystery played entirely through a simulated operating system.
+              </p>
+              <p>
+                You boot into an abandoned 2004 workstation: browsing files, running diagnostic commands in the terminal, inspecting processes, and discovering what happened inside the facility.
+              </p>
+              <p className="text-slate-400">
+                The operating system itself is the game. As you explore, the computer begins responding to your actions.
+              </p>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 03: THE INCIDENT
+             ========================================================================= */}
+          <section id="story" className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-pink-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              02 // THE INCIDENT
+            </div>
+            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
+              <p>
+                In 2004, NEXUS SYSTEMS developed VOID//OS as an adaptive cognitive system designed to learn from human users.
+              </p>
+              <div className="p-3 bg-black/60 border-l border-pink-500 rounded-r text-[11px] text-pink-300">
+                <strong>AUGUST 14, 2004 // 03:14 AM:</strong> An unlogged anomaly occurred during cognitive feedback trials. The facility was evacuated and sealed. VOID//OS was supposedly terminated.
+              </div>
+              <p className="text-slate-400">
+                Years later, an intact recovery package was found. You are the first operator to initialize the system since the collapse.
+              </p>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 04: YOUR ASSIGNMENT
+             ========================================================================= */}
+          <section className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              03 // YOUR ASSIGNMENT
+            </div>
+            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs">
+              <div className="text-slate-200 font-bold">RECOVERY OPERATOR DIRECTIVES:</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-400 text-[11px]">
+                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                  <strong className="text-slate-200">01.</strong> Inspect workstation drives.
+                </div>
+                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                  <strong className="text-slate-200">02.</strong> Recover classified archives.
+                </div>
+                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                  <strong className="text-slate-200">03.</strong> Investigate Incident 07.
+                </div>
+                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                  <strong className="text-slate-200">04.</strong> Determine what happened at 03:14.
+                </div>
+                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                  <strong className="text-slate-200">05.</strong> Locate the VOID Core partition.
+                </div>
+                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                  <strong className="text-slate-200">06.</strong> Decide the system's fate.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 05: HOW IT WORKS
+             ========================================================================= */}
+          <section className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-purple-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              04 // HOW IT WORKS
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
+                <div className="font-bold text-cyan-300">EXPLORE</div>
+                <p className="text-[11px] text-slate-400">Search file trees, examine hidden dotfiles, and inspect system logs.</p>
+              </div>
+              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
+                <div className="font-bold text-cyan-300">INVESTIGATE</div>
+                <p className="text-[11px] text-slate-400">Use terminal diagnostics, chat transcripts, and your Case File journal.</p>
+              </div>
+              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
+                <div className="font-bold text-pink-300">OBSERVE</div>
+                <p className="text-[11px] text-slate-400">Perform Observation Duty to maintain stability as anomalies occur.</p>
+              </div>
+              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
+                <div className="font-bold text-purple-300">DISCOVER</div>
+                <p className="text-[11px] text-slate-400">Unlock deeper partitions and reveal the truth behind the project.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 06: THE SYSTEM
+             ========================================================================= */}
+          <section id="system" className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              05 // THE SYSTEM
+            </div>
+            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
+              <p>
+                You start with a minimal recovery desktop. As you investigate, the system installs new components:
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-400 pt-1">
+                <div>• Terminal Shell (`sh-4.09`)</div>
+                <div>• Case File Dossier</div>
+                <div>• Observer Telemetry</div>
+                <div>• CCTV Camera Feeds</div>
+                <div>• Memory Hex Buffer</div>
+                <div>• Security Matrix</div>
+                <div>• NetSeek Intranet</div>
+                <div>• Operator Messages</div>
+                <div>• Reality Core</div>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 07: THE ANOMALY
+             ========================================================================= */}
+          <section className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-pink-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              06 // THE ANOMALY
+            </div>
+            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
+              <p>
+                The computer does not remain static. As you progress into later acts, system stability begins to drain.
+              </p>
+              <p className="text-slate-400">
+                Neglecting the Anomaly leads to screen corruption, false telemetry readings, and hostile daemon intervention. Operators must use the <strong>OBSERVER</strong> application to perform multi-step stabilization routines.
+              </p>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 08: ACHIEVEMENTS & PROFILE
+             ========================================================================= */}
+          <section id="profile" className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              07 // OPERATOR PROFILE & ACHIEVEMENTS
+            </div>
+            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-4 text-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-slate-200 font-bold">RECOVERY TELEMETRY TRACKER</div>
+                  <div className="text-[11px] text-slate-400">
+                    42 System Events, 12 Branching Endings, and Case File intelligence.
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setIsProfileOpen(true);
+                  }}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 rounded text-xs font-bold flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <User size={13} />
+                  <span>VIEW PROFILE</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
+                  <div className="text-slate-500 text-[10px]">ACT</div>
+                  <div className="text-pink-400 font-bold">ACT {activeStory.act || 1}</div>
+                </div>
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
+                  <div className="text-slate-500 text-[10px]">ACHIEVEMENTS</div>
+                  <div className="text-amber-400 font-bold">{(activeStory.unlockedEvents || []).length} / 42</div>
+                </div>
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
+                  <div className="text-slate-500 text-[10px]">CASE FILE</div>
+                  <div className="text-purple-400 font-bold">
+                    {Math.min(100, Math.round((Object.keys(activeStory.caseFileDiscoveries || {}).length / 12) * 100))}%
+                  </div>
+                </div>
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
+                  <div className="text-slate-500 text-[10px]">ENDINGS</div>
+                  <div className="text-green-400 font-bold">{(activeStory.endingDiscovered || []).length} / 12</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 09: CREDITS & FEEDBACK
+             ========================================================================= */}
+          <section id="credits" className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              08 // CREDITS & FEEDBACK
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {/* Credits Box */}
+              <div className="p-4 bg-[#050816] border border-slate-800 rounded space-y-2">
+                <div className="text-slate-200 font-bold">VOID//OS</div>
+                <p className="text-[11px] text-slate-400">
+                  Created and designed by <strong className="text-slate-200">Paarth</strong>.
+                </p>
+                <a
+                  href="https://github.com/Itzphantomgg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1.5 text-cyan-400 hover:text-cyan-300 text-xs font-bold pt-1"
+                >
+                  <span>GitHub: Itzphantomgg</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+
+              {/* Feedback Box */}
+              <div className="p-4 bg-[#050816] border border-slate-800 rounded space-y-2">
+                <div className="text-slate-200 font-bold">FEEDBACK</div>
+                <p className="text-[11px] text-slate-400">
+                  Found an anomaly or have a suggestion?
+                </p>
+                <a
+                  href="mailto:paarth.archive@gmail.com?subject=VOID//OS%20Feedback"
+                  className="inline-flex items-center space-x-1.5 text-pink-400 hover:text-pink-300 text-xs font-bold pt-1"
+                >
+                  <Mail size={12} />
+                  <span>paarth.archive@gmail.com</span>
+                </a>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 10: BOTTOM PLAY CTA
+             ========================================================================= */}
+          <div className="pt-6 text-center">
+            <button
+              onClick={handlePlayClick}
+              className="px-10 py-3.5 bg-slate-900 hover:bg-cyan-950 text-cyan-300 font-bold text-sm tracking-widest border border-cyan-500 rounded transition-all cursor-pointer"
+            >
+              BOOT RECOVERY TERMINAL [v1.3.0]
+            </button>
+          </div>
+
         </div>
       </div>
+
+      {/* Profile Modal */}
+      {isProfileOpen && (
+        <ProfileModal
+          storyState={activeStory}
+          onClose={() => setIsProfileOpen(false)}
+          onOpenWiki={() => {
+            setIsProfileOpen(false);
+            setIsWikiOpen(true);
+          }}
+        />
+      )}
+
+      {/* Wiki Modal */}
+      {isWikiOpen && (
+        <WikiModal
+          act={activeStory.act || 1}
+          onClose={() => setIsWikiOpen(false)}
+        />
+      )}
 
       {/* Fullscreen Transition Overlay */}
       {isLaunching && (

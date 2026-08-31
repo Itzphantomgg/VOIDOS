@@ -15,7 +15,7 @@
 [![Clearance](https://img.shields.io/badge/CLEARANCE-LEVEL_4_RESTRICTED-red?style=flat-square)](https://github.com/Itzphantomgg/VOIDOS)
 [![Incident Date](https://img.shields.io/badge/INCIDENT_DATE-14_AUG_2004_03%3A14_AM-pink?style=flat-square)](https://github.com/Itzphantomgg/VOIDOS)
 [![Endings](https://img.shields.io/badge/RESOLUTIONS-12_BRANCHING_ENDINGS-purple?style=flat-square)](https://github.com/Itzphantomgg/VOIDOS)
-[![Creator](https://img.shields.io/badge/CREATED_BY-PAARTH-green?style=flat-square)](https://github.com/Itzphantomgg/Paarth)
+[![Creator](https://img.shields.io/badge/CREATED_BY-PAARTH-green?style=flat-square)](https://github.com/Itzphantomgg)
 
 ---
 
@@ -117,10 +117,8 @@ Every decision, terminal override, file deletion, and ethical choice leads to on
 | :--- | :--- |
 | **`TAB`** | Toggle Full Mission Objectives & Recovery Log |
 | **`ESC`** | Dismiss active modal / close window |
-| **`CTRL + L`** | Instant launch Terminal diagnostic shell |
-| **`CTRL + F`** | Instant launch File Explorer |
-| **`ALT + TAB`** | Fast window cycling |
 | **`ENTER`** | Confirm boot sequence / execute terminal command |
+| **`CTRL + L`** | Instant launch Terminal diagnostic shell |
 
 ---
 
@@ -162,9 +160,9 @@ Open **`http://localhost:5173`** in your browser.
 
 ## 👨‍💻 CREDITS & AUTHORSHIP
 
-**VOID//OS** was designed and created by **[Paarth](https://github.com/Itzphantomgg/Paarth)**.
+**VOID//OS** was designed and created by **[Paarth](https://github.com/Itzphantomgg)**.
 
-- **Creator GitHub:** [https://github.com/Itzphantomgg/Paarth](https://github.com/Itzphantomgg/Paarth)
+- **Creator GitHub:** [https://github.com/Itzphantomgg](https://github.com/Itzphantomgg)
 - **Project Repository:** [https://github.com/Itzphantomgg/VOIDOS](https://github.com/Itzphantomgg/VOIDOS)
 - **Feedback & Bug Reports:** [`paarth.archive@gmail.com`](mailto:paarth.archive@gmail.com)
 

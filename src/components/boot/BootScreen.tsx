@@ -279,11 +279,10 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
                   <span>KEYBOARD SHORTCUTS</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-slate-400">
-                  <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">TAB</kbd> - Full Mission Objectives</div>
+                  <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">TAB</kbd> - Mission Objectives</div>
                   <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">ESC</kbd> - Close active window</div>
-                  <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">CTRL + L</kbd> - Open Terminal</div>
-                  <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">CTRL + F</kbd> - Open Files</div>
-                  <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">ALT + TAB</kbd> - Cycle open windows</div>
+                  <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">ENTER</kbd> - Confirm / Execute</div>
+                  <div>• <kbd className="bg-slate-800 px-1 py-0.5 text-cyan-300">CTRL + L</kbd> - Terminal Shell</div>
                 </div>
               </div>
 
@@ -330,7 +329,7 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
               <div><strong>Architecture:</strong> VOID-X64 Synaptic Hybrid RISC</div>
               <div><strong>Memory:</strong> 16,384 MB High-Speed ECC DDR</div>
               <div><strong>Storage:</strong> 512 GB Quantum Magnetic Platter Array</div>
-              <div><strong>Kernel:</strong> VOID//OS 4.09.2a (2004 Recovery Build v1.2.0)</div>
+              <div><strong>Kernel:</strong> VOID//OS 4.09.2a (2004 Recovery Build v1.3.0)</div>
               <div><strong>Network Mode:</strong> Sector 7 Isolation (Air-gapped)</div>
             </div>
             <div className="pt-2 text-right">
@@ -358,7 +357,7 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
             <div className="space-y-2 text-[11px] text-slate-300 leading-relaxed">
               <p><strong>VOID//OS v1.3.0</strong> is an interactive digital mystery, ARG, and digital horror experience.</p>
               <p>Created by <strong>Paarth</strong>.</p>
-              <p>GitHub: <a href="https://github.com/Itzphantomgg/Paarth" target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline">https://github.com/Itzphantomgg/Paarth</a></p>
+              <p>GitHub: <a href="https://github.com/Itzphantomgg" target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline">https://github.com/Itzphantomgg</a></p>
               <p>Feedback: <a href="mailto:paarth.archive@gmail.com" className="text-pink-400 underline">paarth.archive@gmail.com</a></p>
             </div>
             <div className="pt-2 text-right">
