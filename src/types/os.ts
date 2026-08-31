@@ -15,6 +15,7 @@ export type AppId =
   | 'camera'
   | 'memory'
   | 'observer'
+  | 'objectives'
   | 'imageviewer'
   | 'textviewer'
   | 'hexviewer'
@@ -85,12 +86,4 @@ export interface DesktopIconItem {
   y: number;
   hidden?: boolean;
   corrupted?: boolean;
-}
-
-export interface GameObjective {
-  id: string;
-  title: string;
-  description: string;
-  isCompleted: boolean;
-  requiredAct?: number;
 }

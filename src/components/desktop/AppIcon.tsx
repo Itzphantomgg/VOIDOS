@@ -18,7 +18,8 @@ import {
   Binary,
   Briefcase,
   Camera,
-  Layers
+  Layers,
+  Target
 } from 'lucide-react';
 
 interface AppIconProps {
@@ -29,6 +30,8 @@ interface AppIconProps {
 
 export const AppIcon: React.FC<AppIconProps> = ({ appId, className = '', size = 28 }) => {
   switch (appId) {
+    case 'objectives':
+      return <Target className={`text-cyan-300 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)] ${className}`} size={size} />;
     case 'files':
       return <Folder className={`text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)] ${className}`} size={size} />;
     case 'terminal':

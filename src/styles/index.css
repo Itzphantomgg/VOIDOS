@@ -9,6 +9,10 @@
     -webkit-user-drag: none;
   }
 
+  body {
+    cursor: default;
+  }
+
   /* Custom scrollbars for retro aesthetic */
   ::-webkit-scrollbar {
     width: 14px;
@@ -42,6 +46,11 @@
 
   input, textarea {
     user-select: text !important;
+    cursor: text !important;
+  }
+
+  button, a, [role="button"], .cursor-pointer {
+    cursor: pointer !important;
   }
 }
 
@@ -142,17 +151,4 @@
 
 .glow-green {
   text-shadow: 0 0 8px rgba(0, 255, 102, 0.7);
-}
-
-/* Custom Pixel Cursor Classes */
-.cursor-retro-default {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%2300f0ff' stroke='%23000' stroke-width='1.5' d='M2 2l7 18 3-7 7-3z'/%3E%3C/svg%3E"), auto;
-}
-
-.cursor-retro-pointer {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff007f' stroke='%23000' stroke-width='1.5' d='M8 2v10h2V5h2v7h2V7h2v5h2v-3h2v10c0 3-2 5-5 5H9c-3 0-5-2-5-5V8h4V2z'/%3E%3C/svg%3E"), pointer;
-}
-
-.cursor-retro-text {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%2300f0ff' stroke='%23000' stroke-width='1' d='M10 2h4v2h-1v7h1v2h-1v7h1v2h-4v-2h1v-7H11V4h-1z'/%3E%3C/svg%3E"), text;
 }

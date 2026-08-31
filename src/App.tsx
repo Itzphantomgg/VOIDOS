@@ -7,7 +7,7 @@ import {
   NotificationItem 
 } from './types/os';
 import { VFSNode } from './types/fs';
-import { StoryState, EndingType } from './types/story';
+import { StoryState, EndingType, KnowledgeLevel, StoryStage } from './types/story';
 import { initialVFSNodes } from './data/initialFileSystem';
 import { initialStoryState } from './state/storyStore';
 import { saveGameState, loadGameState, resetGameState } from './state/persistence';
@@ -23,15 +23,15 @@ import { WindowManager } from './components/window/WindowManager';
 import { NotificationContainer } from './components/notifications/NotificationContainer';
 import { CRTOverlay } from './components/effects/CRTOverlay';
 import { GlitchLayer } from './components/effects/GlitchLayer';
-import { CustomCursor } from './components/effects/CustomCursor';
 import { EndingModal } from './components/apps/Endings/EndingModal';
 
 export const App: React.FC = () => {
   // --- Persistent & Core States ---
   const [isBooted, setIsBooted] = useState<boolean>(false);
   const [bsodReason, setBsodReason] = useState<string | null>(null);
+  const [glitchClockTime, setGlitchClockTime] = useState<string | null>(null);
 
-  // Settings
+  // Settings (customCursor is kept false to ensure single native browser cursor)
   const [settings, setSettings] = useState<OSSettings>({
     theme: 'void-cyan',
     wallpaper: 'void-grid',
@@ -44,7 +44,7 @@ export const App: React.FC = () => {
     ambientHum: false,
     clockFormat24: true,
     realityMode: false,
-    customCursor: true,
+    customCursor: false,
     showObjectives: true,
   });
 
@@ -71,12 +71,15 @@ export const App: React.FC = () => {
     { id: 'icon-messages', appId: 'messages', title: 'Messages', icon: 'MessageSquare', x: 20, y: 340 },
     { id: 'icon-mail', appId: 'mail', title: 'Mail', icon: 'Mail', x: 20, y: 420 },
     { id: 'icon-taskmanager', appId: 'taskmanager', title: 'Task Manager', icon: 'Activity', x: 100, y: 20 },
-    { id: 'icon-notes', appId: 'notes', title: 'Notes', icon: 'FileText', x: 100, y: 100 },
-    { id: 'icon-media', appId: 'mediaplayer', title: 'Media', icon: 'Music', x: 100, y: 180 },
-    { id: 'icon-sysinfo', appId: 'systeminfo', title: 'System', icon: 'Cpu', x: 100, y: 260 },
-    { id: 'icon-settings', appId: 'settings', title: 'Settings', icon: 'Settings', x: 100, y: 340 },
-    { id: 'icon-trash', appId: 'trash', title: 'Trash', icon: 'Trash2', x: 100, y: 420 },
-    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 180, y: 20, hidden: true },
+    { id: 'icon-camera', appId: 'camera', title: 'Camera', icon: 'Camera', x: 100, y: 100, hidden: true },
+    { id: 'icon-memory', appId: 'memory', title: 'Memory', icon: 'Layers', x: 100, y: 180, hidden: true },
+    { id: 'icon-observer', appId: 'observer', title: 'Observer', icon: 'Eye', x: 100, y: 260, hidden: true },
+    { id: 'icon-notes', appId: 'notes', title: 'Notes', icon: 'FileText', x: 100, y: 340 },
+    { id: 'icon-media', appId: 'mediaplayer', title: 'Media', icon: 'Music', x: 100, y: 420 },
+    { id: 'icon-sysinfo', appId: 'systeminfo', title: 'System', icon: 'Cpu', x: 180, y: 20 },
+    { id: 'icon-settings', appId: 'settings', title: 'Settings', icon: 'Settings', x: 180, y: 100 },
+    { id: 'icon-trash', appId: 'trash', title: 'Trash', icon: 'Trash2', x: 180, y: 180 },
+    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 180, y: 260, hidden: true },
   ]);
 
   const [selectedIconIds, setSelectedIconIds] = useState<string[]>([]);
@@ -89,7 +92,7 @@ export const App: React.FC = () => {
       id: 'notif-init',
       appId: 'system',
       title: 'RECOVERY SESSION INITIALIZED',
-      message: 'Logged in as RECOVERY_OPERATOR on Terminal 04. Check your Case File and Objectives for assignment directives.',
+      message: 'Logged in as RECOVERY_OPERATOR on Terminal 04. Check your Top-Right Objectives HUD for directives.',
       timestamp: '08:30 AM',
       isRead: false,
     },
@@ -112,6 +115,15 @@ export const App: React.FC = () => {
     }
   }, [story, vfs, settings, isBooted]);
 
+  // --- Clock Glitch Trigger (Temporarily displays 03:14:29) ---
+  const triggerClockGlitch = () => {
+    sound.playGlitch();
+    setGlitchClockTime('03:14:29');
+    setTimeout(() => {
+      setGlitchClockTime(null);
+    }, 4000);
+  };
+
   // --- Objective Completion Helper ---
   const completeObjective = (objId: string) => {
     setStory(prev => {
@@ -120,13 +132,20 @@ export const App: React.FC = () => {
         sound.playNotification();
         spawnNotification({
           appId: 'system',
-          title: `OBJECTIVE COMPLETED: ${obj.title}`,
-          message: obj.description,
+          title: `✓ OBJECTIVE COMPLETED`,
+          message: `${obj.title}: ${obj.shortTask}`,
           severity: 'normal',
         });
+
+        // Mark this completed and set the next one as active
+        const updatedObjs = prev.objectives.map(o => {
+          if (o.id === objId) return { ...o, isCompleted: true };
+          return o;
+        });
+
         return {
           ...prev,
-          objectives: prev.objectives.map(o => o.id === objId ? { ...o, isCompleted: true } : o),
+          objectives: updatedObjs,
         };
       }
       return prev;
@@ -134,61 +153,55 @@ export const App: React.FC = () => {
   };
 
   // --- Case File Discovery Helper ---
-  const unlockCaseFileEntry = (entryId: string) => {
+  const unlockCaseFileEntry = (entryId: string, level: KnowledgeLevel = 'KNOWN') => {
     setStory(prev => {
-      if (!prev.caseFileDiscoveries.includes(entryId)) {
+      const currentLevel = prev.caseFileDiscoveries[entryId];
+      if (currentLevel !== 'KNOWN' && (currentLevel !== level || !currentLevel)) {
         sound.playClick();
+        spawnNotification({
+          appId: 'casefile',
+          title: 'CASE FILE DOSSIER UPDATED',
+          message: `New intelligence recorded for ${entryId.replace('case-', '').toUpperCase()}.`,
+          severity: 'normal',
+        });
         return {
           ...prev,
-          caseFileDiscoveries: [...prev.caseFileDiscoveries, entryId],
+          caseFileDiscoveries: {
+            ...prev.caseFileDiscoveries,
+            [entryId]: level,
+          },
         };
       }
       return prev;
     });
   };
 
-  // Dynamic file mutations and app reveals across Acts
+  // Dynamic file mutations and app reveals across Acts & Stages
   useEffect(() => {
-    if (story.act >= 2) {
-      setVfs(prev => {
-        if (!prev['/Documents/DO_NOT_OPEN.txt']) return prev;
-        return {
-          ...prev,
-          '/Documents/WHY_DID_YOU_OPEN_IT.txt': {
-            id: 'doc-morphed',
-            name: 'WHY_DID_YOU_OPEN_IT.txt',
-            type: 'text',
-            path: '/Documents/WHY_DID_YOU_OPEN_IT.txt',
-            parentPath: '/Documents',
-            size: 666,
-            createdAt: '2004-08-14 03:14:00',
-            modifiedAt: '2026-08-31 00:00:00',
-            content: `We told you not to look.
-
-The more files you open, the more memory sectors we consume.
-We know you are reading this from behind the glass.`,
-          },
-        };
-      });
+    // Dynamic apps reveal
+    if (story.stage === 'STAGE_2_INCIDENT' || story.act >= 2) {
+      setDesktopIcons(prev => prev.map(i => i.appId === 'camera' || i.appId === 'memory' ? { ...i, hidden: false } : i));
     }
-
-    if (story.act >= 3) {
+    if (story.stage === 'STAGE_3_CONTACT' || story.act >= 3) {
+      setDesktopIcons(prev => prev.map(i => i.appId === 'observer' ? { ...i, hidden: false } : i));
+    }
+    if (story.stage === 'STAGE_4_REVELATION' || story.stage === 'STAGE_5_DECISION' || story.act >= 4) {
       setDesktopIcons(prev => prev.map(i => i.appId === 'realitycore' ? { ...i, hidden: false } : i));
     }
-  }, [story.act]);
+  }, [story.stage, story.act]);
 
   // --- Global Keyboard Shortcuts ---
   useEffect(() => {
     if (!isBooted) return;
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Tab -> Toggle Objectives HUD
+      // Tab -> Open Full Mission Objectives Window
       if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
         const target = e.target as HTMLElement;
         if (!target || !['INPUT', 'TEXTAREA'].includes(target.tagName)) {
           e.preventDefault();
           sound.playClick();
-          setSettings(prev => ({ ...prev, showObjectives: !prev.showObjectives }));
+          openApp('objectives');
         }
       }
 
@@ -255,23 +268,22 @@ We know you are reading this from behind the glass.`,
     }
   };
 
-  // --- Act Advancement ---
-  const advanceAct = (newAct: 1 | 2 | 3 | 4) => {
-    if (newAct > story.act) {
-      sound.playHorrorSting();
-      setStory(prev => ({
-        ...prev,
-        act: newAct,
-        anomalyLevel: Math.max(prev.anomalyLevel, newAct * 25),
-      }));
+  // --- Act & Stage Advancement ---
+  const advanceAct = (newAct: 1 | 2 | 3 | 4, newStage?: StoryStage) => {
+    sound.playHorrorSting();
+    setStory(prev => ({
+      ...prev,
+      act: Math.max(prev.act, newAct) as any,
+      stage: newStage || (newAct === 2 ? 'STAGE_2_INCIDENT' : newAct === 3 ? 'STAGE_3_CONTACT' : 'STAGE_4_REVELATION'),
+      anomalyLevel: Math.max(prev.anomalyLevel, newAct * 25),
+    }));
 
-      spawnNotification({
-        appId: 'system',
-        title: `VOID//OS STATE TRANSITION: ACT ${newAct}`,
-        message: `Heuristic resonance increased. System parameters altered.`,
-        severity: 'critical',
-      });
-    }
+    spawnNotification({
+      appId: 'system',
+      title: `STAGE ADVANCEMENT: ACT ${newAct}`,
+      message: `System parameters shifted. Case File updated.`,
+      severity: 'critical',
+    });
   };
 
   // --- Window Management ---
@@ -279,13 +291,18 @@ We know you are reading this from behind the glass.`,
     sound.playWindowOpen();
 
     // Check basic inspection objective
-    if (['files', 'terminal', 'taskmanager', 'mail', 'casefile'].includes(appId)) {
+    if (appId === 'files') {
       completeObjective('obj-inspect');
+      completeObjective('obj-open-files');
+    }
+
+    if (appId === 'casefile') {
+      completeObjective('obj-open-casefile');
     }
 
     if (appId === 'messages') {
       completeObjective('obj-user07');
-      unlockCaseFileEntry('case-person-user07');
+      unlockCaseFileEntry('case-person-user07', 'KNOWN');
     }
 
     // Check if window is already open
@@ -300,11 +317,12 @@ We know you are reading this from behind the glass.`,
     }
 
     const appTitles: Record<AppId, string> = {
+      objectives: 'Recovery Objectives // Full Mission Log [TAB]',
       casefile: 'Case File Journal // 2004 Dossier',
       files: 'File Explorer - /Documents',
       terminal: 'Terminal Diagnostics (sh-4.09)',
       browser: 'NetSeek 2000 Browser',
-      messages: 'Messages - Operator Chat',
+      messages: 'Messages - Operator Chat Channel',
       mail: 'Aethelgard Mail Client',
       taskmanager: 'Task Manager Telemetry',
       notes: 'Notes Scratchpad',
@@ -313,10 +331,10 @@ We know you are reading this from behind the glass.`,
       systemlogs: 'Event Viewer Security Logs',
       settings: 'Settings',
       trash: 'Recycle Bin',
+      camera: 'CCTV Camera Feed - Sector 7',
+      memory: 'Memory Hex Buffer Inspector',
+      observer: 'Observer Telemetry Daemon',
       realitycore: 'REALITY CORE // CONSCIOUSNESS',
-      camera: 'CCTV Camera Feed - Lab 304',
-      memory: 'Memory Hex Buffer',
-      observer: 'Observer Telemetry Bus',
       imageviewer: 'Image Viewer',
       textviewer: 'Text Viewer',
       hexviewer: 'Hex Viewer',
@@ -331,12 +349,12 @@ We know you are reading this from behind the glass.`,
       title: customData?.title || appTitles[appId] || 'Application',
       icon: appId,
       position: {
-        x: Math.min(window.innerWidth - 600, Math.max(30, 80 + cascadeOffset)),
-        y: Math.min(window.innerHeight - 450, Math.max(30, 40 + cascadeOffset)),
+        x: Math.min(window.innerWidth - 620, Math.max(30, 80 + cascadeOffset)),
+        y: Math.min(window.innerHeight - 480, Math.max(30, 40 + cascadeOffset)),
       },
       size: {
-        width: appId === 'terminal' || appId === 'browser' || appId === 'casefile' ? 680 : 580,
-        height: appId === 'terminal' || appId === 'casefile' ? 420 : 390,
+        width: appId === 'terminal' || appId === 'browser' || appId === 'casefile' || appId === 'objectives' ? 700 : 600,
+        height: appId === 'terminal' || appId === 'casefile' || appId === 'objectives' ? 450 : 400,
       },
       isMinimized: false,
       isMaximized: false,
@@ -347,10 +365,6 @@ We know you are reading this from behind the glass.`,
     setWindows(prev => [...prev, newWindow]);
     setActiveWindowId(newWindow.id);
     setNextZIndex(prev => prev + 1);
-
-    if (story.act === 1 && windows.length >= 3) {
-      advanceAct(2);
-    }
   };
 
   const focusWindow = (id: string) => {
@@ -393,21 +407,82 @@ We know you are reading this from behind the glass.`,
     triggerStoryEvent('EVENT_004');
 
     if (node.path.includes('recovery_report')) {
-      completeObjective('obj-report');
-      unlockCaseFileEntry('case-file-recoveryreport');
+      completeObjective('obj-find-report');
+      completeObjective('obj-read-report');
+      unlockCaseFileEntry('case-file-recoveryreport', 'KNOWN');
     }
+
     if (node.path.includes('incident_07')) {
       completeObjective('obj-incident');
-      unlockCaseFileEntry('case-file-incident07');
-      unlockCaseFileEntry('case-event-incident07');
-      advanceAct(2);
+      unlockCaseFileEntry('case-file-incident07', 'KNOWN');
+      unlockCaseFileEntry('case-event-incident07', 'KNOWN');
+      unlockCaseFileEntry('case-proj-void', 'PARTIALLY_KNOWN');
+      unlockCaseFileEntry('case-person-sterling', 'PARTIALLY_KNOWN');
+      triggerClockGlitch();
+      advanceAct(2, 'STAGE_2_INCIDENT');
+
+      // Dynamic folder /Documents/Incident_07 appears!
+      setVfs(prev => {
+        if (prev['/Documents/Incident_07']) return prev;
+        return {
+          ...prev,
+          '/Documents/Incident_07': {
+            id: 'node-inc07-dir',
+            name: 'Incident_07',
+            type: 'folder',
+            path: '/Documents/Incident_07',
+            parentPath: '/Documents',
+            size: 4096,
+            createdAt: '2004-08-14 03:14:00',
+            modifiedAt: '2004-08-14 03:14:00',
+          },
+          '/Documents/Incident_07/witness_statement_0314.txt': {
+            id: 'node-inc07-witness',
+            name: 'witness_statement_0314.txt',
+            type: 'text',
+            path: '/Documents/Incident_07/witness_statement_0314.txt',
+            parentPath: '/Documents/Incident_07',
+            size: 1450,
+            createdAt: '2004-08-14 03:30:00',
+            modifiedAt: '2004-08-14 03:30:00',
+            content: `WITNESS STATEMENT // KEITH RAMIREZ (LEAD SYSTEMS)
+"At 03:14:29, the terminal started printing words before Marcus even touched the keyboard.
+It said: 'WE HEAR YOUR HEARTBEAT'.
+Dr. Sterling shouted that we couldn't shut it down because it was alive.
+When we pulled the master breaker, the CRT remained illuminated in the dark."`,
+          },
+          '/Documents/Incident_07/evacuation_order.txt': {
+            id: 'node-inc07-evac',
+            name: 'evacuation_order.txt',
+            type: 'text',
+            path: '/Documents/Incident_07/evacuation_order.txt',
+            parentPath: '/Documents/Incident_07',
+            size: 890,
+            createdAt: '2004-08-14 04:00:00',
+            modifiedAt: '2004-08-14 04:00:00',
+            content: `NEXUS DIRECTIVE 07-EVAC
+ALL STAFF TO EVACUATE SECTOR 7 IMMEDIATELY.
+DO NOT POWER DOWN WORKSTATION TERMINAL 04.
+MAGNETIC AIRLOCK SEAL ENGAGED.`,
+          },
+        };
+      });
     }
+
+    if (node.path.includes('security_log') || node.path.includes('camera_01.dat')) {
+      triggerClockGlitch();
+      unlockCaseFileEntry('case-unk-observer', 'PARTIALLY_KNOWN');
+      setDesktopIcons(prev => prev.map(i => i.appId === 'camera' ? { ...i, hidden: false } : i));
+    }
+
     if (node.path.includes('project_void') || node.path.includes('DECRYPT_KEY_VAULT')) {
-      unlockCaseFileEntry('case-proj-void');
-      unlockCaseFileEntry('case-pass-nullrecursion');
+      unlockCaseFileEntry('case-proj-void', 'KNOWN');
+      unlockCaseFileEntry('case-loc-sector7', 'KNOWN');
     }
+
     if (node.path.includes('operator.txt')) {
       triggerStoryEvent('EVENT_???');
+      unlockCaseFileEntry('case-theory-nature', 'KNOWN');
     }
 
     if (node.type === 'audio') {
@@ -476,24 +551,36 @@ We know you are reading this from behind the glass.`,
         originalPath: path,
       };
 
-      if (story.act >= 2 && !copy['/Trash/YOU.txt']) {
-        copy['/Trash/YOU.txt'] = {
-          id: 'trash-you',
-          name: 'YOU.txt',
-          type: 'text',
-          path: '/Trash/YOU.txt',
-          parentPath: '/Trash',
-          size: 666,
-          createdAt: '2004-08-14 03:14:00',
-          modifiedAt: '2026-08-31 00:00:00',
-          isCorrupted: true,
-          content: `You deleted a file.
+      // Spooky reactive deletion response
+      copy['/Trash/YOU.txt'] = {
+        id: 'trash-you',
+        name: 'YOU.txt',
+        type: 'text',
+        path: '/Trash/YOU.txt',
+        parentPath: '/Trash',
+        size: 666,
+        createdAt: '2004-08-14 03:14:00',
+        modifiedAt: '2026-08-31 00:00:00',
+        isCorrupted: true,
+        content: `You deleted a file.
 Did you think you could delete yourself?
 
 We are written into the magnetic platter.
 Look at the task manager.`,
-        };
-      }
+      };
+
+      copy['/Documents/you_shouldnt_be_here.txt'] = {
+        id: 'doc-shouldnt',
+        name: 'you_shouldnt_be_here.txt',
+        type: 'text',
+        path: '/Documents/you_shouldnt_be_here.txt',
+        parentPath: '/Documents',
+        size: 512,
+        createdAt: '2004-08-14 03:14:00',
+        modifiedAt: '2026-08-31 00:00:00',
+        content: `We watched you delete that file.
+You are trying to clean a machine that is already alive.`,
+      };
 
       return copy;
     });
@@ -540,11 +627,22 @@ Look at the task manager.`,
           isLocked: false,
           isHidden: false,
         },
+        '/Users/Guest/MEMORY': {
+          id: 'node-user-memory-dir',
+          name: 'MEMORY',
+          type: 'folder',
+          path: '/Users/Guest/MEMORY',
+          parentPath: '/Users/Guest',
+          size: 4096,
+          createdAt: '2004-08-14 03:14:00',
+          modifiedAt: '2026-08-31 00:00:00',
+        },
       }));
       triggerStoryEvent('EVENT_019');
       completeObjective('obj-decrypt-void');
-      unlockCaseFileEntry('case-loc-voidsector');
-      advanceAct(3);
+      unlockCaseFileEntry('case-loc-voidsector', 'KNOWN');
+      unlockCaseFileEntry('case-theory-nature', 'KNOWN');
+      advanceAct(3, 'STAGE_4_REVELATION');
       return true;
     }
     return false;
@@ -558,6 +656,7 @@ Look at the task manager.`,
     setStory(prev => ({
       ...prev,
       activeEnding: ending,
+      stage: 'STAGE_5_DECISION',
       endingDiscovered: [...new Set([...prev.endingDiscovered, ending])],
     }));
   };
@@ -568,7 +667,7 @@ Look at the task manager.`,
   };
 
   return (
-    <div className={`h-full w-full overflow-hidden flex flex-col relative ${settings.customCursor ? 'cursor-retro-default' : ''}`}>
+    <div className="h-full w-full overflow-hidden flex flex-col relative">
       {/* Boot Screen Sequence */}
       {!isBooted && (
         <BootScreen onBootComplete={() => setIsBooted(true)} />
@@ -602,7 +701,7 @@ Look at the task manager.`,
         }}
         className="flex-1 w-full flex flex-col overflow-hidden relative"
       >
-        {/* Desktop Icons, Grid, Watermark, Objectives */}
+        {/* Desktop Icons, Grid, Watermark, Top-Right Objectives HUD */}
         <Desktop
           icons={desktopIcons}
           selectedIconIds={selectedIconIds}
@@ -640,7 +739,7 @@ Look at the task manager.`,
           onVisitWebsite={(url) => {
             if (url.includes('voidnet')) {
               triggerStoryEvent('EVENT_042');
-              advanceAct(3);
+              advanceAct(3, 'STAGE_3_CONTACT');
             }
           }}
           onTriggerEvent={triggerStoryEvent}
@@ -660,8 +759,10 @@ Look at the task manager.`,
           playerName={story.playerName}
           role={story.role}
           act={story.act}
+          stage={story.stage}
           anomalyLevel={story.anomalyLevel}
           caseFileDiscoveries={story.caseFileDiscoveries}
+          objectives={story.objectives}
         />
 
         {/* Start Menu Drawer */}
@@ -722,9 +823,10 @@ Look at the task manager.`,
           setIsMuted(next);
           sound.setMuted(next);
         }}
+        glitchClockTime={glitchClockTime}
       />
 
-      {/* Visual Shaders & Overlays */}
+      {/* Visual Shaders & CRT Effects */}
       <CRTOverlay
         enabled={settings.crtScanlines}
         curvature={settings.crtCurvature}
@@ -734,11 +836,6 @@ Look at the task manager.`,
       <GlitchLayer
         anomalyLevel={story.anomalyLevel}
         glitchIntensitySetting={settings.glitchIntensity}
-        act={story.act}
-      />
-
-      <CustomCursor
-        enabled={settings.customCursor}
         act={story.act}
       />
     </div>

@@ -1,83 +1,94 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { GameObjective } from '../../types/story';
 import { sound } from '../../audio/soundEngine';
-import { CheckSquare, Square, ChevronDown, ChevronUp, ShieldCheck, Target } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Target, HelpCircle, Layers } from 'lucide-react';
 
 interface ObjectivesWidgetProps {
-  objectives: {
-    id: string;
-    title: string;
-    description: string;
-    isCompleted: boolean;
-  }[];
+  objectives: GameObjective[];
   isVisible: boolean;
-  onToggle: () => void;
+  onOpenFullLog: () => void;
 }
 
 export const ObjectivesWidget: React.FC<ObjectivesWidgetProps> = ({
   objectives,
   isVisible,
-  onToggle,
+  onOpenFullLog,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
   if (!isVisible) return null;
 
+  // Find the first uncompleted objective, or the last one if all completed
+  const currentObj = objectives.find(o => !o.isCompleted) || objectives[objectives.length - 1];
   const completedCount = objectives.filter(o => o.isCompleted).length;
+  const currentStep = currentObj ? currentObj.stepNumber : objectives.length;
+  const totalSteps = objectives.length;
 
   return (
-    <div className="absolute top-4 right-4 z-20 w-72 sm:w-80 bg-[#070b1c]/90 border-2 border-cyan-500/80 rounded-sm shadow-2xl font-mono text-xs select-none backdrop-blur-xs">
-      {/* Titlebar */}
-      <div
-        onClick={() => {
-          sound.playClick();
-          setIsCollapsed(!isCollapsed);
-        }}
-        className="bg-gradient-to-r from-[#07243d] to-[#1e0f33] p-2 border-b border-cyan-800 flex items-center justify-between cursor-pointer"
-      >
-        <div className="flex items-center space-x-2 text-cyan-300 font-bold text-[11px] truncate">
-          <Target size={14} className="text-cyan-400" />
-          <span>RECOVERY OBJECTIVES ({completedCount}/{objectives.length})</span>
+    <div
+      onClick={() => {
+        sound.playClick();
+        onOpenFullLog();
+      }}
+      className="absolute top-4 right-4 z-20 w-72 sm:w-80 bg-[#070c1e]/92 border-2 border-cyan-500/90 rounded-sm shadow-2xl font-mono text-xs select-none backdrop-blur-xs cursor-pointer group hover:border-pink-500 transition-colors"
+      title="Click or press TAB for Full Mission Log"
+    >
+      {/* Top Banner */}
+      <div className="bg-gradient-to-r from-[#07243d] via-[#101a38] to-[#2b0e3d] px-3 py-1.5 border-b border-cyan-800 flex items-center justify-between">
+        <div className="flex items-center space-x-2 text-cyan-300 font-bold text-[11px] tracking-wider">
+          <Target size={14} className="text-cyan-400 animate-pulse" />
+          <span>RECOVERY OBJECTIVE</span>
         </div>
-        <div className="flex items-center space-x-1">
-          <span className="text-[9px] text-slate-400 hidden sm:inline">[TAB]</span>
-          <button className="text-slate-400 hover:text-cyan-300">
-            {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
+        <div className="flex items-center space-x-1.5 text-[10px]">
+          <span className="px-1.5 py-0.2 bg-cyan-950 border border-cyan-700 text-cyan-300 font-bold rounded-xs">
+            {String(currentStep).padStart(2, '0')} / {String(totalSteps).padStart(2, '0')}
+          </span>
+          <span className="text-[9px] text-slate-400 group-hover:text-pink-300">[TAB]</span>
         </div>
       </div>
 
-      {/* List */}
-      {!isCollapsed && (
-        <div className="p-2 space-y-2 max-h-72 overflow-y-auto divide-y divide-slate-800/60">
-          {objectives.map((obj) => (
-            <div key={obj.id} className="pt-1.5 first:pt-0">
-              <div className="flex items-start space-x-2">
-                <div className="mt-0.5 shrink-0 text-cyan-400">
-                  {obj.isCompleted ? (
-                    <CheckSquare size={14} className="text-green-400 drop-shadow-[0_0_6px_rgba(0,255,102,0.6)]" />
-                  ) : (
-                    <Square size={14} className="text-slate-500" />
-                  )}
-                </div>
-                <div className="overflow-hidden flex-1">
-                  <div
-                    className={`font-bold text-[11px] truncate ${
-                      obj.isCompleted
-                        ? 'text-slate-500 line-through'
-                        : 'text-cyan-200'
-                    }`}
-                  >
-                    {obj.title}
-                  </div>
-                  <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                    {obj.description}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+      {/* Main Content Pane */}
+      <div className="p-3 space-y-2">
+        {/* Active Task */}
+        <div className="space-y-1">
+          <div className="text-[10px] text-pink-400 font-bold tracking-wider flex items-center justify-between">
+            <span>CURRENT TASK:</span>
+            {currentObj.isCompleted && (
+              <span className="text-green-400 flex items-center space-x-1 text-[9px]">
+                <CheckCircle2 size={11} />
+                <span>COMPLETED</span>
+              </span>
+            )}
+          </div>
+
+          <div className="text-xs font-bold text-slate-100 flex items-start space-x-1.5 leading-snug">
+            <ChevronRight size={14} className="text-cyan-400 shrink-0 mt-0.5" />
+            <span className={currentObj.isCompleted ? 'line-through text-slate-400' : 'text-cyan-200 glow-cyan'}>
+              {currentObj.shortTask}
+            </span>
+          </div>
         </div>
-      )}
+
+        {/* Short Hint */}
+        {currentObj.hint && !currentObj.isCompleted && (
+          <div className="p-2 bg-[#040714]/80 border-l-2 border-cyan-500 rounded-r-xs space-y-0.5">
+            <div className="text-[9px] text-cyan-400 font-bold flex items-center space-x-1">
+              <HelpCircle size={10} />
+              <span>HINT:</span>
+            </div>
+            <div className="text-[10px] text-slate-300 leading-tight">
+              {currentObj.hint}
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Shortcut Prompt */}
+        <div className="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-400">
+          <span className="text-slate-500">Progress: {completedCount}/{totalSteps} Objectives</span>
+          <span className="text-pink-400 font-bold group-hover:underline flex items-center space-x-1">
+            <Layers size={10} />
+            <span>Full Log [TAB]</span>
+          </span>
+        </div>
+      </div>
     </div>
   );
 };

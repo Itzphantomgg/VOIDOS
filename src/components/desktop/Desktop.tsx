@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { DesktopIconItem, AppId } from '../../types/os';
+import { GameObjective } from '../../types/story';
 import { DesktopIcon } from './DesktopIcon';
 import { ObjectivesWidget } from './ObjectivesWidget';
 import { sound } from '../../audio/soundEngine';
-import { RefreshCw, FileText, Cpu, Terminal, Image, Briefcase, FolderPlus } from 'lucide-react';
+import { RefreshCw, Cpu, Terminal, Image, Briefcase, FolderPlus, Target } from 'lucide-react';
 
 interface DesktopProps {
   icons: DesktopIconItem[];
@@ -14,12 +15,7 @@ interface DesktopProps {
   act: number;
   anomalyLevel: number;
   wallpaperTheme: string;
-  objectives: {
-    id: string;
-    title: string;
-    description: string;
-    isCompleted: boolean;
-  }[];
+  objectives: GameObjective[];
   showObjectives: boolean;
   onToggleObjectives: () => void;
 }
@@ -126,11 +122,11 @@ export const Desktop: React.FC<DesktopProps> = ({
         ))}
       </div>
 
-      {/* Recovery Objectives HUD Widget */}
+      {/* Recovery Objectives Top-Right HUD Widget */}
       <ObjectivesWidget
         objectives={objectives}
         isVisible={showObjectives}
-        onToggle={onToggleObjectives}
+        onOpenFullLog={() => onOpenApp('objectives')}
       />
 
       {/* Marquee Drag Selection Box */}
@@ -150,12 +146,34 @@ export const Desktop: React.FC<DesktopProps> = ({
       {contextMenu && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="fixed bg-[#090e1f] border-2 border-cyan-500 py-1 w-52 shadow-2xl rounded-sm z-[9980] font-mono text-xs text-slate-200 select-none"
+          className="fixed bg-[#090e1f] border-2 border-cyan-500 py-1 w-56 shadow-2xl rounded-sm z-[9980] font-mono text-xs text-slate-200 select-none"
           style={{
-            left: Math.min(window.innerWidth - 220, contextMenu.x),
-            top: Math.min(window.innerHeight - 260, contextMenu.y),
+            left: Math.min(window.innerWidth - 240, contextMenu.x),
+            top: Math.min(window.innerHeight - 280, contextMenu.y),
           }}
         >
+          <button
+            onClick={() => {
+              sound.playClick();
+              onOpenApp('objectives');
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
+          >
+            <Target size={13} className="text-cyan-400" />
+            <span>Mission Objectives [TAB]</span>
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick();
+              onOpenApp('casefile');
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
+          >
+            <Briefcase size={13} className="text-pink-400" />
+            <span>Open Case File</span>
+          </button>
           <button
             onClick={() => {
               sound.playClick();
@@ -166,17 +184,6 @@ export const Desktop: React.FC<DesktopProps> = ({
           >
             <FolderPlus size={13} />
             <span>Open File Explorer</span>
-          </button>
-          <button
-            onClick={() => {
-              sound.playClick();
-              onOpenApp('casefile');
-              setContextMenu(null);
-            }}
-            className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2"
-          >
-            <Briefcase size={13} />
-            <span>Open Case File</span>
           </button>
           <button
             onClick={() => {

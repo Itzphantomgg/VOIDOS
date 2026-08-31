@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppId } from '../../types/os';
 import { AppIcon } from './AppIcon';
 import { sound } from '../../audio/soundEngine';
-import { Power, RotateCcw, Search, ShieldAlert } from 'lucide-react';
+import { Power, RotateCcw, Search, ShieldAlert, Target } from 'lucide-react';
 
 interface StartMenuProps {
   isOpen: boolean;
@@ -30,7 +30,8 @@ export const StartMenu: React.FC<StartMenuProps> = ({
   if (!isOpen) return null;
 
   const appItems: { id: AppId; title: string; desc: string }[] = [
-    { id: 'casefile', title: 'Case File Journal', desc: 'Story Dossier & Objectives' },
+    { id: 'objectives', title: 'Recovery Objectives', desc: 'Mission Directives & Tasks [TAB]' },
+    { id: 'casefile', title: 'Case File Journal', desc: 'Story Dossier & Investigation' },
     { id: 'files', title: 'File Explorer', desc: 'Browse Virtual File System' },
     { id: 'terminal', title: 'Terminal Diagnostics', desc: 'Monospace Command Line' },
     { id: 'browser', title: 'NetSeek Browser', desc: 'Intranet & Web Archive' },
@@ -160,7 +161,7 @@ export const StartMenu: React.FC<StartMenuProps> = ({
           title="Reset game state"
         >
           <ShieldAlert size={12} />
-          <span>WIPE SAVE</span>
+          <span>RESET SYSTEM</span>
         </button>
 
         <div className="flex space-x-1.5">

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TerminalLine } from '../../../types/apps';
+import { KnowledgeLevel } from '../../../types/story';
 import { sound } from '../../../audio/soundEngine';
 import { handleTerminalCommand } from '../../../data/terminalCommands';
 
@@ -14,7 +15,7 @@ interface TerminalProps {
   setAnomalyLevel: (fn: (prev: number) => number) => void;
   openApp: (appId: any, data?: any) => void;
   completeObjective: (objId: string) => void;
-  unlockCaseFileEntry: (entryId: string) => void;
+  unlockCaseFileEntry: (entryId: string, level?: KnowledgeLevel) => void;
   playerName: string;
   role: string;
   act: number;

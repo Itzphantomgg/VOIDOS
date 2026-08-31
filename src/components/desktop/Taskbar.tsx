@@ -19,6 +19,7 @@ interface TaskbarProps {
   onVolumeChange: (v: number) => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  glitchClockTime?: string | null;
 }
 
 export const Taskbar: React.FC<TaskbarProps> = ({
@@ -36,6 +37,7 @@ export const Taskbar: React.FC<TaskbarProps> = ({
   onVolumeChange,
   isMuted,
   onToggleMute,
+  glitchClockTime,
 }) => {
   return (
     <div className="h-10 bg-[#080d1e] border-t-2 border-[#1c2747] flex items-center justify-between z-[9900] select-none text-xs font-mono shadow-2xl relative">
@@ -66,29 +68,36 @@ export const Taskbar: React.FC<TaskbarProps> = ({
         {/* Quick Launch Icons */}
         <div className="hidden sm:flex items-center space-x-1">
           <button
+            onClick={() => onQuickLaunch('objectives')}
+            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-cyan-400 cursor-pointer"
+            title="Recovery Objectives"
+          >
+            <AppIcon appId="objectives" size={16} />
+          </button>
+          <button
+            onClick={() => onQuickLaunch('casefile')}
+            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-pink-400 cursor-pointer"
+            title="Case File"
+          >
+            <AppIcon appId="casefile" size={16} />
+          </button>
+          <button
             onClick={() => onQuickLaunch('files')}
-            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-cyan-400"
+            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-cyan-400 cursor-pointer"
             title="File Explorer"
           >
             <AppIcon appId="files" size={16} />
           </button>
           <button
             onClick={() => onQuickLaunch('terminal')}
-            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-green-400"
+            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-green-400 cursor-pointer"
             title="Terminal Diagnostics"
           >
             <AppIcon appId="terminal" size={16} />
           </button>
           <button
-            onClick={() => onQuickLaunch('browser')}
-            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-blue-400"
-            title="NetSeek Browser"
-          >
-            <AppIcon appId="browser" size={16} />
-          </button>
-          <button
             onClick={() => onQuickLaunch('messages')}
-            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-pink-400"
+            className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-pink-400 cursor-pointer"
             title="Messages"
           >
             <AppIcon appId="messages" size={16} />
@@ -134,6 +143,7 @@ export const Taskbar: React.FC<TaskbarProps> = ({
         onVolumeChange={onVolumeChange}
         isMuted={isMuted}
         onToggleMute={onToggleMute}
+        glitchClockTime={glitchClockTime}
       />
     </div>
   );

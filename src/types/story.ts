@@ -1,5 +1,12 @@
 export type StoryAct = 1 | 2 | 3 | 4;
 
+export type StoryStage = 
+  | 'STAGE_1_RECOVERY'
+  | 'STAGE_2_INCIDENT'
+  | 'STAGE_3_CONTACT'
+  | 'STAGE_4_REVELATION'
+  | 'STAGE_5_DECISION';
+
 export type EndingType = 
   | 'escape'
   | 'corruption'
@@ -9,6 +16,8 @@ export type EndingType =
   | 'the_operator'
   | 'void_secret'
   | 'acceptance';
+
+export type KnowledgeLevel = 'UNKNOWN' | 'PARTIALLY_KNOWN' | 'KNOWN';
 
 export interface SystemEvent {
   id: string; // e.g. "EVENT_001", "EVENT_007", "EVENT_013", "EVENT_027", "EVENT_???"
@@ -20,16 +29,34 @@ export interface SystemEvent {
 
 export interface CaseFileEntry {
   id: string;
-  category: 'PEOPLE' | 'PROJECTS' | 'LOCATIONS' | 'EVENTS' | 'FILES' | 'PASSWORDS' | 'THEORIES' | 'UNKNOWN';
+  category: 'PEOPLE' | 'PROJECTS' | 'EVENTS' | 'LOCATIONS' | 'FILES' | 'THEORIES' | 'UNKNOWN';
   title: string;
   subtitle: string;
-  content: string;
-  unlocked: boolean;
-  timestamp?: string;
+  status: string; // e.g. "TERMINATED", "ANOMALOUS", "UNKNOWN"
+  date?: string;
+  incidentTimestamp?: string;
+  knowledgeLevel: KnowledgeLevel;
+  summary: string;
+  detailedContent: string;
+  discoveredAt?: string;
+}
+
+export interface GameObjective {
+  id: string;
+  stepNumber: number;
+  title: string;
+  shortTask: string;
+  hint: string;
+  description: string;
+  isCompleted: boolean;
+  isCurrent: boolean;
+  isLocked: boolean;
+  category?: 'SYSTEM' | 'INVESTIGATION' | 'DECRYPTION' | 'RESOLUTION';
 }
 
 export interface StoryState {
   act: StoryAct;
+  stage: StoryStage;
   anomalyLevel: number; // 0 to 100
   playerName: string;
   role: string; // "RECOVERY_OPERATOR"
@@ -41,13 +68,8 @@ export interface StoryState {
     glitchEncounters: number;
   };
   unlockedEvents: string[]; // Event IDs
-  caseFileDiscoveries: string[]; // Entry IDs
-  objectives: {
-    id: string;
-    title: string;
-    description: string;
-    isCompleted: boolean;
-  }[];
+  caseFileDiscoveries: Record<string, KnowledgeLevel>; // entryId -> KnowledgeLevel
+  objectives: GameObjective[];
   activeEnding: EndingType | null;
   endingDiscovered: EndingType[];
   logsViewed: string[];
@@ -57,4 +79,6 @@ export interface StoryState {
   processesKilled: string[];
   messagesAnswered: string[];
   currentVoidDialogueStep: number;
+  unlockedApps: string[];
+  unlockedFolders: string[];
 }

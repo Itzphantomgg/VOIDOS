@@ -12,6 +12,7 @@ interface SystemTrayProps {
   onVolumeChange: (vol: number) => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  glitchClockTime?: string | null;
 }
 
 export const SystemTray: React.FC<SystemTrayProps> = ({
@@ -23,6 +24,7 @@ export const SystemTray: React.FC<SystemTrayProps> = ({
   onVolumeChange,
   isMuted,
   onToggleMute,
+  glitchClockTime,
 }) => {
   const [timeStr, setTimeStr] = useState('');
   const [isVolumeFlyoutOpen, setIsVolumeFlyoutOpen] = useState(false);
@@ -31,6 +33,10 @@ export const SystemTray: React.FC<SystemTrayProps> = ({
 
   useEffect(() => {
     const updateClock = () => {
+      if (glitchClockTime) {
+        setTimeStr(glitchClockTime);
+        return;
+      }
       const now = new Date();
       if (act >= 3 && Math.random() < 0.1) {
         setTimeStr('23:59:??');
@@ -44,7 +50,7 @@ export const SystemTray: React.FC<SystemTrayProps> = ({
     updateClock();
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
-  }, [act]);
+  }, [act, glitchClockTime]);
 
   return (
     <div className="flex items-center space-x-2 text-xs font-mono select-none px-2 h-full bg-[#050814] border-l border-slate-800">
@@ -55,7 +61,7 @@ export const SystemTray: React.FC<SystemTrayProps> = ({
             sound.playClick();
             setIsVolumeFlyoutOpen(!isVolumeFlyoutOpen);
           }}
-          className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-cyan-400 transition-colors"
+          className="p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer"
           title="Sound Volume"
         >
           {isMuted || masterVolume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
@@ -74,7 +80,7 @@ export const SystemTray: React.FC<SystemTrayProps> = ({
                   sound.playClick();
                   onToggleMute();
                 }}
-                className="text-[9px] px-1 bg-slate-800 hover:bg-pink-900 text-pink-300 rounded border border-pink-700"
+                className="text-[9px] px-1 bg-slate-800 hover:bg-pink-900 text-pink-300 rounded border border-pink-700 cursor-pointer"
               >
                 {isMuted ? 'UNMUTE' : 'MUTE'}
               </button>
@@ -117,7 +123,7 @@ export const SystemTray: React.FC<SystemTrayProps> = ({
           sound.playClick();
           onToggleNotifications();
         }}
-        className="relative p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-cyan-400 transition-colors"
+        className="relative p-1 hover:bg-slate-800 rounded text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer"
         title="Notifications"
       >
         <Bell size={15} />
@@ -129,8 +135,8 @@ export const SystemTray: React.FC<SystemTrayProps> = ({
       </button>
 
       {/* Clock */}
-      <div className="text-cyan-300 font-mono text-xs pl-1 font-bold">
-        {timeStr}
+      <div className={`font-mono text-xs pl-1 font-bold ${glitchClockTime ? 'text-pink-500 glow-magenta animate-pulse' : 'text-cyan-300'}`}>
+        {glitchClockTime || timeStr}
       </div>
     </div>
   );

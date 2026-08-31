@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { OSSettings, ThemeName } from '../../../types/os';
 import { sound } from '../../../audio/soundEngine';
-import { Palette, Monitor, Volume2, Shield, Eye, RotateCcw } from 'lucide-react';
+import { Palette, Monitor, Volume2, Shield, Eye, RotateCcw, AlertTriangle, X } from 'lucide-react';
 
 interface SettingsProps {
   settings: OSSettings;
@@ -16,6 +16,8 @@ export const Settings: React.FC<SettingsProps> = ({
   onResetGame,
   act,
 }) => {
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+
   const themes: { id: ThemeName; title: string; color: string }[] = [
     { id: 'void-cyan', title: 'Void Cyber (Default)', color: '#00f0ff' },
     { id: 'neon-magenta', title: 'Corrupted Magenta', color: '#ff007f' },
@@ -25,7 +27,7 @@ export const Settings: React.FC<SettingsProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#070b1a] text-slate-200 font-mono text-xs select-none p-4 overflow-y-auto space-y-6">
+    <div className="flex flex-col h-full bg-[#070b1a] text-slate-200 font-mono text-xs select-none p-4 overflow-y-auto space-y-6 relative">
       {/* Visual Themes */}
       <div className="space-y-2 border-b border-slate-800 pb-4">
         <div className="flex items-center space-x-2 text-cyan-400 font-bold text-sm">
@@ -69,7 +71,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 sound.playClick();
                 onUpdateSettings({ crtScanlines: e.target.checked });
               }}
-              className="accent-cyan-400 w-4 h-4"
+              className="accent-cyan-400 w-4 h-4 cursor-pointer"
             />
             <span>CRT Scanline Overlay</span>
           </label>
@@ -82,22 +84,9 @@ export const Settings: React.FC<SettingsProps> = ({
                 sound.playClick();
                 onUpdateSettings({ crtCurvature: e.target.checked });
               }}
-              className="accent-cyan-400 w-4 h-4"
+              className="accent-cyan-400 w-4 h-4 cursor-pointer"
             />
             <span>CRT Screen Vignette</span>
-          </label>
-
-          <label className="flex items-center space-x-2.5 p-2 bg-[#0a0f22] border border-slate-800 rounded cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.customCursor}
-              onChange={(e) => {
-                sound.playClick();
-                onUpdateSettings({ customCursor: e.target.checked });
-              }}
-              className="accent-cyan-400 w-4 h-4"
-            />
-            <span>Custom Pixel Cursors</span>
           </label>
         </div>
 
@@ -140,18 +129,18 @@ export const Settings: React.FC<SettingsProps> = ({
                 if (enabled) sound.startAmbientHum();
                 else sound.stopAmbientHum();
               }}
-              className="accent-cyan-400 w-4 h-4"
+              className="accent-cyan-400 w-4 h-4 cursor-pointer"
             />
             <span>Continuous CRT & Drive Ambient Hum</span>
           </label>
         </div>
       </div>
 
-      {/* Advanced & Reality Mode */}
+      {/* Advanced & Reset System */}
       <div className="space-y-3">
         <div className="flex items-center space-x-2 text-pink-400 font-bold text-sm">
           <Eye size={16} />
-          <span>ADVANCED OPERATOR MODES</span>
+          <span>ADVANCED OPERATOR CONTROLS</span>
         </div>
 
         <div className="p-3 bg-[#0f0a1c] border border-pink-700/60 rounded space-y-2">
@@ -167,7 +156,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 sound.playClick();
                 onUpdateSettings({ realityMode: !settings.realityMode });
               }}
-              className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${
+              className={`px-3 py-1 text-xs font-bold rounded border transition-colors cursor-pointer ${
                 settings.realityMode
                   ? 'bg-pink-900 border-pink-400 text-white glow-magenta'
                   : 'bg-slate-900 border-slate-700 text-slate-400'
@@ -181,17 +170,51 @@ export const Settings: React.FC<SettingsProps> = ({
         <div className="pt-2">
           <button
             onClick={() => {
-              if (confirm('Are you sure you want to reset all game progress and reboot?')) {
-                onResetGame();
-              }
+              sound.playClick();
+              setIsResetConfirmOpen(true);
             }}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-700 rounded font-bold transition-colors cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-2 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-700 rounded font-bold transition-colors cursor-pointer shadow-2xl"
           >
-            <RotateCcw size={13} />
-            <span>FACTORY RESET SYSTEM (HARD WIPE)</span>
+            <RotateCcw size={14} />
+            <span>RESET SYSTEM (WIPE ALL RECOVERY DATA)</span>
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {isResetConfirmOpen && (
+        <div className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-[#0b0818] border-2 border-red-500 p-5 rounded-sm max-w-sm w-full space-y-4 shadow-2xl font-mono text-xs text-slate-200">
+            <div className="flex items-center space-x-2 text-red-400 font-bold text-sm">
+              <AlertTriangle size={18} className="animate-pulse" />
+              <span>RESET VOID//OS?</span>
+            </div>
+
+            <p className="text-slate-300 leading-relaxed text-xs">
+              ALL RECOVERY DATA, CASE FILE DISCOVERIES, UNLOCKED FILES, AND OBJECTIVES WILL BE LOST.
+            </p>
+
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                onClick={() => setIsResetConfirmOpen(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-600 cursor-pointer"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setIsResetConfirmOpen(false);
+                  onResetGame();
+                }}
+                className="px-4 py-1.5 bg-red-800 hover:bg-red-700 text-white font-bold rounded border border-red-500 cursor-pointer shadow-retro-magenta"
+              >
+                RESET
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

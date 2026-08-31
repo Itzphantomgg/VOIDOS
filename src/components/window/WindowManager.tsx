@@ -1,6 +1,7 @@
 import React from 'react';
 import { OSWindowState, AppId } from '../../types/os';
 import { VFSNode } from '../../types/fs';
+import { GameObjective, KnowledgeLevel, StoryStage } from '../../types/story';
 import { OSWindow } from './OSWindow';
 import { FileExplorer } from '../apps/FileExplorer/FileExplorer';
 import { FilePreview } from '../apps/FileExplorer/FilePreview';
@@ -17,6 +18,10 @@ import { Settings } from '../apps/Settings/Settings';
 import { Trash } from '../apps/Trash/Trash';
 import { CaseFile } from '../apps/CaseFile/CaseFile';
 import { RealityCore } from '../apps/RealityCore/RealityCore';
+import { CameraApp } from '../apps/Camera/CameraApp';
+import { MemoryApp } from '../apps/Memory/MemoryApp';
+import { ObserverApp } from '../apps/Observer/ObserverApp';
+import { ObjectivesModal } from '../apps/Objectives/ObjectivesModal';
 
 interface WindowManagerProps {
   windows: OSWindowState[];
@@ -45,7 +50,7 @@ interface WindowManagerProps {
   setAnomalyLevel: (fn: (prev: number) => number) => void;
   openApp: (appId: AppId, data?: any) => void;
   completeObjective: (objId: string) => void;
-  unlockCaseFileEntry: (entryId: string) => void;
+  unlockCaseFileEntry: (entryId: string, level?: KnowledgeLevel) => void;
   onKillHostileProcess: (name: string) => void;
   settings: any;
   onUpdateSettings: (newSettings: any) => void;
@@ -53,8 +58,10 @@ interface WindowManagerProps {
   playerName: string;
   role: string;
   act: number;
+  stage: StoryStage;
   anomalyLevel: number;
-  caseFileDiscoveries: string[];
+  caseFileDiscoveries: Record<string, KnowledgeLevel>;
+  objectives: GameObjective[];
 }
 
 export const WindowManager: React.FC<WindowManagerProps> = ({
@@ -91,8 +98,10 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   playerName,
   role,
   act,
+  stage,
   anomalyLevel,
   caseFileDiscoveries,
+  objectives,
 }) => {
   const renderAppContent = (win: OSWindowState) => {
     switch (win.appId) {
@@ -114,10 +123,28 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
       case 'casefile':
         return (
           <CaseFile
-            unlockedEntryIds={caseFileDiscoveries}
+            discoveries={caseFileDiscoveries}
+            stage={stage}
             act={act}
           />
         );
+
+      case 'objectives':
+        return (
+          <ObjectivesModal
+            objectives={objectives}
+            onClose={() => onCloseWindow(win.id)}
+          />
+        );
+
+      case 'camera':
+        return <CameraApp />;
+
+      case 'memory':
+        return <MemoryApp />;
+
+      case 'observer':
+        return <ObserverApp />;
 
       case 'textviewer':
       case 'imageviewer':
