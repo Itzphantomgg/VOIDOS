@@ -4,23 +4,26 @@ import { sound } from '../../audio/soundEngine';
 import { CheckCircle2, ChevronRight, Target, HelpCircle, Layers } from 'lucide-react';
 
 interface ObjectivesWidgetProps {
-  objectives: GameObjective[];
+  objectives?: GameObjective[];
   isVisible: boolean;
   onOpenFullLog: () => void;
 }
 
 export const ObjectivesWidget: React.FC<ObjectivesWidgetProps> = ({
-  objectives,
+  objectives = [],
   isVisible,
   onOpenFullLog,
 }) => {
   if (!isVisible) return null;
 
+  const validObjectives = Array.isArray(objectives) ? objectives : [];
+  if (validObjectives.length === 0) return null;
+
   // Find the first uncompleted objective, or the last one if all completed
-  const currentObj = objectives.find(o => !o.isCompleted) || objectives[objectives.length - 1];
-  const completedCount = objectives.filter(o => o.isCompleted).length;
-  const currentStep = currentObj ? currentObj.stepNumber : objectives.length;
-  const totalSteps = objectives.length;
+  const currentObj = validObjectives.find(o => o && !o.isCompleted) || validObjectives[validObjectives.length - 1];
+  const completedCount = validObjectives.filter(o => o && o.isCompleted).length;
+  const totalSteps = validObjectives.length;
+  const currentStep = currentObj?.stepNumber || (completedCount < totalSteps ? completedCount + 1 : totalSteps);
 
   return (
     <div
@@ -48,27 +51,29 @@ export const ObjectivesWidget: React.FC<ObjectivesWidgetProps> = ({
       {/* Main Content Pane */}
       <div className="p-3 space-y-2">
         {/* Active Task */}
-        <div className="space-y-1">
-          <div className="text-[10px] text-pink-400 font-bold tracking-wider flex items-center justify-between">
-            <span>CURRENT TASK:</span>
-            {currentObj.isCompleted && (
-              <span className="text-green-400 flex items-center space-x-1 text-[9px]">
-                <CheckCircle2 size={11} />
-                <span>COMPLETED</span>
-              </span>
-            )}
-          </div>
+        {currentObj && (
+          <div className="space-y-1">
+            <div className="text-[10px] text-pink-400 font-bold tracking-wider flex items-center justify-between">
+              <span>CURRENT TASK:</span>
+              {currentObj.isCompleted && (
+                <span className="text-green-400 flex items-center space-x-1 text-[9px]">
+                  <CheckCircle2 size={11} />
+                  <span>COMPLETED</span>
+                </span>
+              )}
+            </div>
 
-          <div className="text-xs font-bold text-slate-100 flex items-start space-x-1.5 leading-snug">
-            <ChevronRight size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-            <span className={currentObj.isCompleted ? 'line-through text-slate-400' : 'text-cyan-200 glow-cyan'}>
-              {currentObj.shortTask}
-            </span>
+            <div className="text-xs font-bold text-slate-100 flex items-start space-x-1.5 leading-snug">
+              <ChevronRight size={14} className="text-cyan-400 shrink-0 mt-0.5" />
+              <span className={currentObj.isCompleted ? 'line-through text-slate-400' : 'text-cyan-200 glow-cyan'}>
+                {currentObj.shortTask || currentObj.title || 'Inspect system parameters'}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Short Hint */}
-        {currentObj.hint && !currentObj.isCompleted && (
+        {currentObj && currentObj.hint && !currentObj.isCompleted && (
           <div className="p-2 bg-[#040714]/80 border-l-2 border-cyan-500 rounded-r-xs space-y-0.5">
             <div className="text-[9px] text-cyan-400 font-bold flex items-center space-x-1">
               <HelpCircle size={10} />

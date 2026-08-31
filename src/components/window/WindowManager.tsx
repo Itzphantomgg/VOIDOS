@@ -3,6 +3,7 @@ import { OSWindowState, AppId } from '../../types/os';
 import { VFSNode } from '../../types/fs';
 import { GameObjective, KnowledgeLevel, StoryStage } from '../../types/story';
 import { OSWindow } from './OSWindow';
+import { AppErrorBoundary } from '../common/ErrorBoundary';
 import { FileExplorer } from '../apps/FileExplorer/FileExplorer';
 import { FilePreview } from '../apps/FileExplorer/FilePreview';
 import { Terminal } from '../apps/Terminal/Terminal';
@@ -65,7 +66,7 @@ interface WindowManagerProps {
 }
 
 export const WindowManager: React.FC<WindowManagerProps> = ({
-  windows,
+  windows = [],
   activeWindowId,
   onFocusWindow,
   onCloseWindow,
@@ -73,8 +74,8 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   onMaximizeWindow,
   onUpdatePosition,
   onUpdateSize,
-  vfs,
-  currentVfsPath,
+  vfs = {},
+  currentVfsPath = '/Documents',
   onNavigateVfs,
   onOpenVfsFile,
   onCreateVfsFile,
@@ -100,8 +101,8 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   act,
   stage,
   anomalyLevel,
-  caseFileDiscoveries,
-  objectives,
+  caseFileDiscoveries = {},
+  objectives = [],
 }) => {
   const renderAppContent = (win: OSWindowState) => {
     switch (win.appId) {
@@ -261,23 +262,30 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
     }
   };
 
+  const validWindows = Array.isArray(windows) ? windows : [];
+
   return (
     <>
-      {windows.map((win) => (
-        <OSWindow
-          key={win.id}
-          window={win}
-          isActive={win.id === activeWindowId}
-          onFocus={() => onFocusWindow(win.id)}
-          onClose={() => onCloseWindow(win.id)}
-          onMinimize={() => onMinimizeWindow(win.id)}
-          onMaximize={() => onMaximizeWindow(win.id)}
-          onUpdatePosition={(x, y) => onUpdatePosition(win.id, x, y)}
-          onUpdateSize={(w, h) => onUpdateSize(win.id, w, h)}
-        >
-          {renderAppContent(win)}
-        </OSWindow>
-      ))}
+      {validWindows.map((win) => {
+        if (!win || !win.id) return null;
+        return (
+          <OSWindow
+            key={win.id}
+            window={win}
+            isActive={win.id === activeWindowId}
+            onFocus={() => onFocusWindow(win.id)}
+            onClose={() => onCloseWindow(win.id)}
+            onMinimize={() => onMinimizeWindow(win.id)}
+            onMaximize={() => onMaximizeWindow(win.id)}
+            onUpdatePosition={(x, y) => onUpdatePosition(win.id, x, y)}
+            onUpdateSize={(w, h) => onUpdateSize(win.id, w, h)}
+          >
+            <AppErrorBoundary appName={win.title} onClose={() => onCloseWindow(win.id)}>
+              {renderAppContent(win)}
+            </AppErrorBoundary>
+          </OSWindow>
+        );
+      })}
     </>
   );
 };

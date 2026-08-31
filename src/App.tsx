@@ -13,7 +13,8 @@ import { initialStoryState } from './state/storyStore';
 import { saveGameState, loadGameState, resetGameState } from './state/persistence';
 import { sound } from './audio/soundEngine';
 
-// Components
+// Components & Error Boundaries
+import { RootErrorBoundary } from './components/common/ErrorBoundary';
 import { BootScreen } from './components/boot/BootScreen';
 import { BSODScreen } from './components/boot/BSODScreen';
 import { Desktop } from './components/desktop/Desktop';
@@ -25,7 +26,7 @@ import { CRTOverlay } from './components/effects/CRTOverlay';
 import { GlitchLayer } from './components/effects/GlitchLayer';
 import { EndingModal } from './components/apps/Endings/EndingModal';
 
-export const App: React.FC = () => {
+export const AppContent: React.FC = () => {
   // --- Persistent & Core States ---
   const [isBooted, setIsBooted] = useState<boolean>(false);
   const [bsodReason, setBsodReason] = useState<string | null>(null);
@@ -98,7 +99,7 @@ export const App: React.FC = () => {
     },
   ]);
 
-  // Load saved state on mount
+  // Load saved state safely on mount
   useEffect(() => {
     const saved = loadGameState();
     if (saved) {
@@ -117,7 +118,9 @@ export const App: React.FC = () => {
 
   // --- Clock Glitch Trigger (Temporarily displays 03:14:29) ---
   const triggerClockGlitch = () => {
-    sound.playGlitch();
+    try {
+      sound.playGlitch();
+    } catch {}
     setGlitchClockTime('03:14:29');
     setTimeout(() => {
       setGlitchClockTime(null);
@@ -127,19 +130,22 @@ export const App: React.FC = () => {
   // --- Objective Completion Helper ---
   const completeObjective = (objId: string) => {
     setStory(prev => {
-      const obj = prev.objectives.find(o => o.id === objId);
+      const objs = Array.isArray(prev.objectives) ? prev.objectives : [];
+      const obj = objs.find(o => o && o.id === objId);
       if (obj && !obj.isCompleted) {
-        sound.playNotification();
+        try {
+          sound.playNotification();
+        } catch {}
         spawnNotification({
           appId: 'system',
           title: `✓ OBJECTIVE COMPLETED`,
-          message: `${obj.title}: ${obj.shortTask}`,
+          message: `${obj.title}: ${obj.shortTask || obj.title}`,
           severity: 'normal',
         });
 
-        // Mark this completed and set the next one as active
-        const updatedObjs = prev.objectives.map(o => {
-          if (o.id === objId) return { ...o, isCompleted: true };
+        // Mark this completed
+        const updatedObjs = objs.map(o => {
+          if (o && o.id === objId) return { ...o, isCompleted: true };
           return o;
         });
 
@@ -155,9 +161,15 @@ export const App: React.FC = () => {
   // --- Case File Discovery Helper ---
   const unlockCaseFileEntry = (entryId: string, level: KnowledgeLevel = 'KNOWN') => {
     setStory(prev => {
-      const currentLevel = prev.caseFileDiscoveries[entryId];
+      const discoveries = prev.caseFileDiscoveries && typeof prev.caseFileDiscoveries === 'object' && !Array.isArray(prev.caseFileDiscoveries)
+        ? prev.caseFileDiscoveries
+        : {};
+
+      const currentLevel = discoveries[entryId];
       if (currentLevel !== 'KNOWN' && (currentLevel !== level || !currentLevel)) {
-        sound.playClick();
+        try {
+          sound.playClick();
+        } catch {}
         spawnNotification({
           appId: 'casefile',
           title: 'CASE FILE DOSSIER UPDATED',
@@ -167,7 +179,7 @@ export const App: React.FC = () => {
         return {
           ...prev,
           caseFileDiscoveries: {
-            ...prev.caseFileDiscoveries,
+            ...discoveries,
             [entryId]: level,
           },
         };
@@ -178,7 +190,6 @@ export const App: React.FC = () => {
 
   // Dynamic file mutations and app reveals across Acts & Stages
   useEffect(() => {
-    // Dynamic apps reveal
     if (story.stage === 'STAGE_2_INCIDENT' || story.act >= 2) {
       setDesktopIcons(prev => prev.map(i => i.appId === 'camera' || i.appId === 'memory' ? { ...i, hidden: false } : i));
     }
@@ -200,7 +211,9 @@ export const App: React.FC = () => {
         const target = e.target as HTMLElement;
         if (!target || !['INPUT', 'TEXTAREA'].includes(target.tagName)) {
           e.preventDefault();
-          sound.playClick();
+          try {
+            sound.playClick();
+          } catch {}
           openApp('objectives');
         }
       }
@@ -241,10 +254,12 @@ export const App: React.FC = () => {
 
   // --- Notification Helper ---
   const spawnNotification = (notif: Omit<NotificationItem, 'id' | 'timestamp'>) => {
-    sound.playNotification();
+    try {
+      sound.playNotification();
+    } catch {}
     const newNotif: NotificationItem = {
       ...notif,
-      id: `notif-${Date.now()}`,
+      id: `notif-${Date.now()}-${Math.random()}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setNotifications(prev => [newNotif, ...prev]);
@@ -252,25 +267,31 @@ export const App: React.FC = () => {
 
   // --- Story Event Trigger ---
   const triggerStoryEvent = (eventId: string) => {
-    if (!story.unlockedEvents.includes(eventId)) {
-      setStory(prev => ({
-        ...prev,
-        unlockedEvents: [...prev.unlockedEvents, eventId],
-        anomalyLevel: Math.min(100, prev.anomalyLevel + 10),
-      }));
+    setStory(prev => {
+      const events = Array.isArray(prev.unlockedEvents) ? prev.unlockedEvents : [];
+      if (!events.includes(eventId)) {
+        spawnNotification({
+          appId: 'system',
+          title: `SYSTEM EVENT DISCOVERED: ${eventId}`,
+          message: `Anomalous pattern registered in system event buffer.`,
+          severity: 'anomaly',
+        });
 
-      spawnNotification({
-        appId: 'system',
-        title: `SYSTEM EVENT DISCOVERED: ${eventId}`,
-        message: `Anomalous pattern registered in system event buffer.`,
-        severity: 'anomaly',
-      });
-    }
+        return {
+          ...prev,
+          unlockedEvents: [...events, eventId],
+          anomalyLevel: Math.min(100, prev.anomalyLevel + 10),
+        };
+      }
+      return prev;
+    });
   };
 
   // --- Act & Stage Advancement ---
   const advanceAct = (newAct: 1 | 2 | 3 | 4, newStage?: StoryStage) => {
-    sound.playHorrorSting();
+    try {
+      sound.playHorrorSting();
+    } catch {}
     setStory(prev => ({
       ...prev,
       act: Math.max(prev.act, newAct) as any,
@@ -288,7 +309,9 @@ export const App: React.FC = () => {
 
   // --- Window Management ---
   const openApp = (appId: AppId, customData?: any) => {
-    sound.playWindowOpen();
+    try {
+      sound.playWindowOpen();
+    } catch {}
 
     // Check basic inspection objective
     if (appId === 'files') {
@@ -306,10 +329,10 @@ export const App: React.FC = () => {
     }
 
     // Check if window is already open
-    const existing = windows.find(w => w.appId === appId && (!customData || w.customData?.path === customData?.path));
+    const existing = windows.find(w => w && w.appId === appId && (!customData || w.customData?.path === customData?.path));
     if (existing) {
       setWindows(prev =>
-        prev.map(w => w.id === existing.id ? { ...w, isMinimized: false, zIndex: nextZIndex + 1 } : w)
+        prev.map(w => w && w.id === existing.id ? { ...w, isMinimized: false, zIndex: nextZIndex + 1 } : w)
       );
       setActiveWindowId(existing.id);
       setNextZIndex(prev => prev + 1);
@@ -344,7 +367,7 @@ export const App: React.FC = () => {
     const cascadeOffset = (count % 8) * 25;
 
     const newWindow: OSWindowState = {
-      id: `win-${appId}-${Date.now()}`,
+      id: `win-${appId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       appId,
       title: customData?.title || appTitles[appId] || 'Application',
       icon: appId,
@@ -368,51 +391,60 @@ export const App: React.FC = () => {
   };
 
   const focusWindow = (id: string) => {
+    if (!id) return;
     setActiveWindowId(id);
     setWindows(prev =>
-      prev.map(w => w.id === id ? { ...w, isMinimized: false, zIndex: nextZIndex + 1 } : w)
+      prev.map(w => w && w.id === id ? { ...w, isMinimized: false, zIndex: nextZIndex + 1 } : w)
     );
     setNextZIndex(prev => prev + 1);
   };
 
   const closeWindow = (id: string) => {
-    setWindows(prev => prev.filter(w => w.id !== id));
+    if (!id) return;
+    setWindows(prev => prev.filter(w => w && w.id !== id));
     if (activeWindowId === id) {
       setActiveWindowId(null);
     }
   };
 
   const minimizeWindow = (id: string) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: true } : w));
+    if (!id) return;
+    setWindows(prev => prev.map(w => w && w.id === id ? { ...w, isMinimized: true } : w));
     if (activeWindowId === id) {
       setActiveWindowId(null);
     }
   };
 
   const maximizeWindow = (id: string) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, isMaximized: !w.isMaximized } : w));
+    if (!id) return;
+    setWindows(prev => prev.map(w => w && w.id === id ? { ...w, isMaximized: !w.isMaximized } : w));
   };
 
   const updateWindowPosition = (id: string, x: number, y: number) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, position: { x, y } } : w));
+    if (!id) return;
+    setWindows(prev => prev.map(w => w && w.id === id ? { ...w, position: { x, y } } : w));
   };
 
   const updateWindowSize = (id: string, width: number, height: number) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, size: { width, height } } : w));
+    if (!id) return;
+    setWindows(prev => prev.map(w => w && w.id === id ? { ...w, size: { width, height } } : w));
   };
 
   // --- VFS File Handlers ---
   const handleOpenVfsFile = (node: VFSNode) => {
-    sound.playClick();
+    if (!node) return;
+    try {
+      sound.playClick();
+    } catch {}
     triggerStoryEvent('EVENT_004');
 
-    if (node.path.includes('recovery_report')) {
+    if (node.path && node.path.includes('recovery_report')) {
       completeObjective('obj-find-report');
       completeObjective('obj-read-report');
       unlockCaseFileEntry('case-file-recoveryreport', 'KNOWN');
     }
 
-    if (node.path.includes('incident_07')) {
+    if (node.path && node.path.includes('incident_07')) {
       completeObjective('obj-incident');
       unlockCaseFileEntry('case-file-incident07', 'KNOWN');
       unlockCaseFileEntry('case-event-incident07', 'KNOWN');
@@ -469,18 +501,18 @@ MAGNETIC AIRLOCK SEAL ENGAGED.`,
       });
     }
 
-    if (node.path.includes('security_log') || node.path.includes('camera_01.dat')) {
+    if (node.path && (node.path.includes('security_log') || node.path.includes('camera_01.dat'))) {
       triggerClockGlitch();
       unlockCaseFileEntry('case-unk-observer', 'PARTIALLY_KNOWN');
       setDesktopIcons(prev => prev.map(i => i.appId === 'camera' ? { ...i, hidden: false } : i));
     }
 
-    if (node.path.includes('project_void') || node.path.includes('DECRYPT_KEY_VAULT')) {
+    if (node.path && (node.path.includes('project_void') || node.path.includes('DECRYPT_KEY_VAULT'))) {
       unlockCaseFileEntry('case-proj-void', 'KNOWN');
       unlockCaseFileEntry('case-loc-sector7', 'KNOWN');
     }
 
-    if (node.path.includes('operator.txt')) {
+    if (node.path && node.path.includes('operator.txt')) {
       triggerStoryEvent('EVENT_???');
       unlockCaseFileEntry('case-theory-nature', 'KNOWN');
     }
@@ -538,7 +570,9 @@ MAGNETIC AIRLOCK SEAL ENGAGED.`,
     const node = vfs[path];
     if (!node) return;
 
-    sound.playWindowClose();
+    try {
+      sound.playWindowClose();
+    } catch {}
 
     const trashPath = `/Trash/${node.name}`;
     setVfs(prev => {
@@ -589,7 +623,9 @@ You are trying to clean a machine that is already alive.`,
   const handleRestoreVfsFile = (trashPath: string) => {
     const node = vfs[trashPath];
     if (!node) return;
-    sound.playClick();
+    try {
+      sound.playClick();
+    } catch {}
 
     const targetPath = node.originalPath || `/Documents/${node.name}`;
     setVfs(prev => {
@@ -605,11 +641,13 @@ You are trying to clean a machine that is already alive.`,
   };
 
   const handleEmptyTrash = () => {
-    sound.playClick();
+    try {
+      sound.playClick();
+    } catch {}
     setVfs(prev => {
       const copy = { ...prev };
       Object.keys(copy).forEach(k => {
-        if (copy[k].parentPath === '/Trash') {
+        if (copy[k]?.parentPath === '/Trash') {
           delete copy[k];
         }
       });
@@ -618,8 +656,10 @@ You are trying to clean a machine that is already alive.`,
   };
 
   const handleUnlockVoid = (password: string): boolean => {
-    if (password.trim().toUpperCase() === 'NULL_RECURSION') {
-      sound.playNotification();
+    if (password && password.trim().toUpperCase() === 'NULL_RECURSION') {
+      try {
+        sound.playNotification();
+      } catch {}
       setVfs(prev => ({
         ...prev,
         '/VOID': {
@@ -650,14 +690,16 @@ You are trying to clean a machine that is already alive.`,
 
   // --- Endings Trigger ---
   const triggerEnding = (ending: EndingType) => {
-    sound.stopProceduralTrack();
-    sound.stopAmbientHum();
+    try {
+      sound.stopProceduralTrack();
+      sound.stopAmbientHum();
+    } catch {}
     completeObjective('obj-resolve');
     setStory(prev => ({
       ...prev,
       activeEnding: ending,
       stage: 'STAGE_5_DECISION',
-      endingDiscovered: [...new Set([...prev.endingDiscovered, ending])],
+      endingDiscovered: [...new Set([...(Array.isArray(prev.endingDiscovered) ? prev.endingDiscovered : []), ending])],
     }));
   };
 
@@ -688,7 +730,7 @@ You are trying to clean a machine that is already alive.`,
       {story.activeEnding && (
         <EndingModal
           ending={story.activeEnding}
-          unlockedEvents={story.unlockedEvents}
+          unlockedEvents={story.unlockedEvents || []}
           onRestart={handleHardResetGame}
         />
       )}
@@ -711,7 +753,7 @@ You are trying to clean a machine that is already alive.`,
           act={story.act}
           anomalyLevel={story.anomalyLevel}
           wallpaperTheme={settings.wallpaper}
-          objectives={story.objectives}
+          objectives={story.objectives || []}
           showObjectives={settings.showObjectives}
           onToggleObjectives={() => setSettings(prev => ({ ...prev, showObjectives: !prev.showObjectives }))}
         />
@@ -737,7 +779,7 @@ You are trying to clean a machine that is already alive.`,
           onEmptyTrash={handleEmptyTrash}
           onUnlockVoid={handleUnlockVoid}
           onVisitWebsite={(url) => {
-            if (url.includes('voidnet')) {
+            if (url && url.includes('voidnet')) {
               triggerStoryEvent('EVENT_042');
               advanceAct(3, 'STAGE_3_CONTACT');
             }
@@ -761,8 +803,8 @@ You are trying to clean a machine that is already alive.`,
           act={story.act}
           stage={story.stage}
           anomalyLevel={story.anomalyLevel}
-          caseFileDiscoveries={story.caseFileDiscoveries}
-          objectives={story.objectives}
+          caseFileDiscoveries={story.caseFileDiscoveries || {}}
+          objectives={story.objectives || []}
         />
 
         {/* Start Menu Drawer */}
@@ -798,7 +840,7 @@ You are trying to clean a machine that is already alive.`,
         isStartMenuOpen={isStartMenuOpen}
         onToggleStartMenu={() => setIsStartMenuOpen(!isStartMenuOpen)}
         onSelectWindow={(id) => {
-          const win = windows.find(w => w.id === id);
+          const win = windows.find(w => w && w.id === id);
           if (win?.isMinimized) {
             focusWindow(id);
           } else if (activeWindowId === id) {
@@ -815,13 +857,17 @@ You are trying to clean a machine that is already alive.`,
         masterVolume={settings.masterVolume}
         onVolumeChange={(vol) => {
           setSettings(prev => ({ ...prev, masterVolume: vol }));
-          sound.setVolume(vol);
+          try {
+            sound.setVolume(vol);
+          } catch {}
         }}
         isMuted={isMuted}
         onToggleMute={() => {
           const next = !isMuted;
           setIsMuted(next);
-          sound.setMuted(next);
+          try {
+            sound.setMuted(next);
+          } catch {}
         }}
         glitchClockTime={glitchClockTime}
       />
@@ -841,4 +887,13 @@ You are trying to clean a machine that is already alive.`,
     </div>
   );
 };
+
+export const App: React.FC = () => {
+  return (
+    <RootErrorBoundary>
+      <AppContent />
+    </RootErrorBoundary>
+  );
+};
+
 export default App;

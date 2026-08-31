@@ -1,17 +1,17 @@
 import React from 'react';
 import { GameObjective } from '../../../types/story';
-import { sound } from '../../../audio/soundEngine';
-import { Target, CheckCircle2, Lock, HelpCircle, FileText, ChevronRight } from 'lucide-react';
+import { Target, CheckCircle2, Lock, HelpCircle, ChevronRight } from 'lucide-react';
 
 interface ObjectivesModalProps {
-  objectives: GameObjective[];
+  objectives?: GameObjective[];
   onClose?: () => void;
 }
 
-export const ObjectivesModal: React.FC<ObjectivesModalProps> = ({ objectives }) => {
-  const currentObj = objectives.find(o => !o.isCompleted);
-  const completedObjs = objectives.filter(o => o.isCompleted);
-  const lockedObjs = objectives.filter(o => !o.isCompleted && o.id !== currentObj?.id);
+export const ObjectivesModal: React.FC<ObjectivesModalProps> = ({ objectives = [] }) => {
+  const validObjectives = Array.isArray(objectives) ? objectives : [];
+  const currentObj = validObjectives.find(o => o && !o.isCompleted);
+  const completedObjs = validObjectives.filter(o => o && o.isCompleted);
+  const lockedObjs = validObjectives.filter(o => o && !o.isCompleted && o.id !== currentObj?.id);
 
   return (
     <div className="flex flex-col h-full bg-[#050814] text-slate-200 font-mono text-xs select-none p-4 space-y-4 overflow-y-auto">
@@ -30,17 +30,17 @@ export const ObjectivesModal: React.FC<ObjectivesModalProps> = ({ objectives }) 
         </div>
         <div className="text-right">
           <span className="px-2 py-0.5 bg-pink-950 border border-pink-700 text-pink-300 font-bold text-xs rounded">
-            {completedObjs.length} / {objectives.length} COMPLETED
+            {completedObjs.length} / {validObjectives.length} COMPLETED
           </span>
         </div>
       </div>
 
       {/* 1. CURRENT OBJECTIVE */}
-      {currentObj && (
+      {currentObj ? (
         <div className="p-3.5 bg-[#091024] border-2 border-cyan-400 rounded space-y-2 shadow-2xl">
           <div className="text-[10px] text-pink-400 font-bold tracking-widest uppercase flex items-center space-x-1.5">
             <Target size={12} className="text-pink-400" />
-            <span>CURRENT PRIORITY OBJECTIVE [{String(currentObj.stepNumber).padStart(2, '0')}]</span>
+            <span>CURRENT PRIORITY OBJECTIVE [{String(currentObj.stepNumber || 1).padStart(2, '0')}]</span>
           </div>
           <div className="text-sm font-bold text-cyan-200 glow-cyan flex items-start space-x-2">
             <ChevronRight size={16} className="text-cyan-400 shrink-0 mt-0.5" />
@@ -55,6 +55,10 @@ export const ObjectivesModal: React.FC<ObjectivesModalProps> = ({ objectives }) 
               <span><strong>HINT:</strong> {currentObj.hint}</span>
             </div>
           )}
+        </div>
+      ) : (
+        <div className="p-4 bg-[#091024] border border-green-500 rounded text-center text-green-300 font-bold">
+          ✓ ALL MISSION RECOVERY OBJECTIVES COMPLETED
         </div>
       )}
 
@@ -77,7 +81,7 @@ export const ObjectivesModal: React.FC<ObjectivesModalProps> = ({ objectives }) 
                 <CheckCircle2 size={15} className="text-green-400 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div className="font-bold text-slate-400 line-through">
-                    [{String(obj.stepNumber).padStart(2, '0')}] {obj.title}
+                    [{String(obj.stepNumber || 1).padStart(2, '0')}] {obj.title}
                   </div>
                   <div className="text-[10px] text-slate-500">{obj.shortTask}</div>
                 </div>
@@ -103,7 +107,7 @@ export const ObjectivesModal: React.FC<ObjectivesModalProps> = ({ objectives }) 
               >
                 <Lock size={13} className="text-slate-700 shrink-0" />
                 <div className="flex-1 truncate">
-                  <span className="font-bold">[{String(obj.stepNumber).padStart(2, '0')}] ?</span>
+                  <span className="font-bold">[{String(obj.stepNumber || '?').padStart(2, '0')}] ?</span>
                   <span className="text-[10px] ml-2 text-slate-700">Investigation required to unlock parameters</span>
                 </div>
               </div>

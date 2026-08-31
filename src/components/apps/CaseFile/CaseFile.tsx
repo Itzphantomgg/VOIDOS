@@ -13,18 +13,20 @@ import {
   Search, 
   Lock,
   CheckCircle2,
-  AlertCircle,
-  Briefcase,
-  Layers
+  Briefcase
 } from 'lucide-react';
 
 interface CaseFileProps {
-  discoveries: Record<string, KnowledgeLevel>;
-  stage: StoryStage;
-  act: number;
+  discoveries?: Record<string, KnowledgeLevel>;
+  stage?: StoryStage;
+  act?: number;
 }
 
-export const CaseFile: React.FC<CaseFileProps> = ({ discoveries, stage, act }) => {
+export const CaseFile: React.FC<CaseFileProps> = ({ 
+  discoveries = {}, 
+  stage = 'STAGE_1_RECOVERY', 
+  act = 1 
+}) => {
   const [activeCategory, setActiveCategory] = useState<CaseFileEntry['category']>('PEOPLE');
   const [selectedEntryId, setSelectedEntryId] = useState<string>('case-person-operator');
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,9 +51,13 @@ export const CaseFile: React.FC<CaseFileProps> = ({ discoveries, stage, act }) =
     { id: 'UNKNOWN', label: 'Unknown', icon: HelpCircle },
   ];
 
+  const safeDiscoveries = discoveries && typeof discoveries === 'object' && !Array.isArray(discoveries)
+    ? discoveries
+    : {};
+
   // Merge discoveries with master entries
   const allEntries: CaseFileEntry[] = masterCaseFileEntries.map(entry => {
-    const level: KnowledgeLevel = discoveries[entry.id] || (entry.id === 'case-person-operator' || entry.id === 'case-proj-recovery' ? 'KNOWN' : 'UNKNOWN');
+    const level: KnowledgeLevel = safeDiscoveries[entry.id] || (entry.id === 'case-person-operator' || entry.id === 'case-proj-recovery' ? 'KNOWN' : 'UNKNOWN');
     return {
       ...entry,
       knowledgeLevel: level,
@@ -67,7 +73,7 @@ export const CaseFile: React.FC<CaseFileProps> = ({ discoveries, stage, act }) =
     return true;
   });
 
-  const selectedEntry = allEntries.find(e => e.id === selectedEntryId);
+  const selectedEntry = allEntries.find(e => e.id === selectedEntryId) || categoryEntries[0] || allEntries[0];
 
   return (
     <div className="flex h-full bg-[#050814] text-slate-200 font-mono text-xs select-none">
@@ -142,7 +148,7 @@ export const CaseFile: React.FC<CaseFileProps> = ({ discoveries, stage, act }) =
 
         <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60">
           {categoryEntries.map(entry => {
-            const isSelected = entry.id === selectedEntryId;
+            const isSelected = entry.id === selectedEntry?.id;
             const isUnknown = entry.knowledgeLevel === 'UNKNOWN';
             const isPartial = entry.knowledgeLevel === 'PARTIALLY_KNOWN';
 
