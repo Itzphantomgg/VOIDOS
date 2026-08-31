@@ -50,16 +50,16 @@ export const Taskbar: React.FC<TaskbarProps> = ({
             sound.playClick();
             onToggleStartMenu();
           }}
-          className={`flex items-center space-x-2 px-3 py-1 font-bold text-xs rounded-sm transition-all cursor-pointer border ${
+          className={`flex items-center space-x-1.5 px-2.5 py-1 font-bold text-xs rounded-sm transition-all cursor-pointer border ${
             isStartMenuOpen
               ? 'bg-cyan-500 text-black border-cyan-300 shadow-retro-cyan'
               : 'bg-gradient-to-r from-[#0d2238] to-[#1a1236] text-cyan-300 border-cyan-600/60 hover:border-cyan-400 hover:text-white'
           }`}
         >
-          <div className="w-4 h-4 bg-cyan-400 text-black flex items-center justify-center font-bold text-[10px] rounded-xs">
-            V
+          <div className="w-4 h-4 bg-cyan-400/20 text-cyan-300 border border-cyan-400/50 flex items-center justify-center font-black text-[10px] rounded-xs">
+            ⬡
           </div>
-          <span className="tracking-wider">START</span>
+          <span className="tracking-wider">VOID<span className="text-pink-400">//</span>OS</span>
         </button>
 
         {/* Quick Launch Separator */}

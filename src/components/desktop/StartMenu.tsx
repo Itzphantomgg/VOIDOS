@@ -74,12 +74,16 @@ export const StartMenu: React.FC<StartMenuProps> = ({
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-[#00385c] via-[#10193d] to-[#3b0d4d] p-3 border-b border-cyan-800 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 bg-cyan-400 text-black flex items-center justify-center font-bold text-xs rounded-sm">
-            V//O
+          <div className="w-6 h-6 bg-cyan-400/20 text-cyan-300 border border-cyan-400/60 flex items-center justify-center font-black text-sm rounded-sm">
+            ⬡
           </div>
           <div>
-            <div className="text-cyan-300 font-bold text-sm tracking-wider">VOID//OS</div>
-            <div className="text-[10px] text-slate-400">RECOVERY UNIT // TERMINAL 04</div>
+            <div className="text-cyan-300 font-bold text-sm tracking-wider flex items-center space-x-1">
+              <span>VOID</span>
+              <span className="text-pink-400">//</span>
+              <span>OS</span>
+            </div>
+            <div className="text-[10px] text-slate-400 font-mono">RECOVERY UNIT // TERMINAL 04</div>
           </div>
         </div>
         <div className="text-right">

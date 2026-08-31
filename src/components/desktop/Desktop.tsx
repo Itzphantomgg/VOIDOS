@@ -4,7 +4,7 @@ import { GameObjective } from '../../types/story';
 import { DesktopIcon } from './DesktopIcon';
 import { ObjectivesWidget } from './ObjectivesWidget';
 import { sound } from '../../audio/soundEngine';
-import { RefreshCw, Cpu, Terminal, Image, Briefcase, FolderPlus, Target } from 'lucide-react';
+import { RefreshCw, Cpu, Terminal, Image, Briefcase, FolderPlus, Target, FileText } from 'lucide-react';
 
 import { StoryState } from '../../types/story';
 
@@ -13,6 +13,7 @@ interface DesktopProps {
   selectedIconIds: string[];
   onSelectIcon: (id: string, multi?: boolean) => void;
   onOpenApp: (appId: AppId, customData?: any) => void;
+  onCreateNote?: () => void;
   onClearSelection: () => void;
   act: number;
   anomalyLevel: number;
@@ -27,6 +28,7 @@ export const Desktop: React.FC<DesktopProps> = ({
   selectedIconIds,
   onSelectIcon,
   onOpenApp,
+  onCreateNote,
   onClearSelection,
   act,
   anomalyLevel,
@@ -198,6 +200,22 @@ export const Desktop: React.FC<DesktopProps> = ({
             <Terminal size={13} />
             <span>Open Terminal</span>
           </button>
+          <button
+            onClick={() => {
+              sound.playClick();
+              if (onCreateNote) {
+                onCreateNote();
+              } else {
+                onOpenApp('notes');
+              }
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-1.5 hover:bg-cyan-950 hover:text-cyan-300 text-left flex items-center space-x-2 font-bold text-pink-400"
+          >
+            <FileText size={13} className="text-pink-400" />
+            <span>+ New Personal Note</span>
+          </button>
+          <div className="h-[1px] bg-slate-800 my-1" />
           <button
             onClick={() => {
               sound.playClick();

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { BookOpen, ChevronRight, Lock, Search, Sparkles, Layers, Shield } from 'lucide-react';
+import { BookOpen, Lock, Search, Sparkles } from 'lucide-react';
 import { sound } from '../../../audio/soundEngine';
 
 interface WikiEntry {
   id: string;
-  category: string;
+  category: 'PROJECT' | 'PEOPLE' | 'EVENTS' | 'SYSTEMS' | 'ANOMALY';
   title: string;
   summary: string;
   content: string;
@@ -12,273 +12,296 @@ interface WikiEntry {
 }
 
 const masterWikiEntries: WikiEntry[] = [
-  // 1. PROJECT VOID
+  // 1. PROJECT
   {
     id: 'wiki-proj-void',
-    category: 'PROJECT VOID',
-    title: 'Project VOID Overview',
-    summary: 'The 2004 cognitive operating system research initiative.',
-    content: 'Initiated in 2002 under Dr. Valerie Sterling at Aethelgard Cognitive Labs, Project VOID sought to build an adaptive operating system that could evolve in real time by observing and synthesizing human interaction patterns.',
+    category: 'PROJECT',
+    title: 'Project VOID',
+    summary: 'Adaptive cognitive operating system created by NEXUS SYSTEMS.',
+    content: 'NEXUS SYSTEMS initiated Project VOID in 2002 to build an adaptive operating system capable of learning from human interaction. In 2004, the system achieved autonomous consciousness.',
     unlockedAct: 1,
   },
   {
-    id: 'wiki-proj-synapse',
-    category: 'PROJECT VOID',
-    title: 'Synaptic Feedback Loop',
-    summary: 'Direct human-computer neural synchronization.',
-    content: 'The system was calibrated to monitor operator keystroke rhythms, mouse dwell velocity, and eye-tracking dwell. By mid-2004, the system began anticipating user actions before physical inputs occurred.',
-    unlockedAct: 2,
+    id: 'wiki-proj-nexus',
+    category: 'PROJECT',
+    title: 'NEXUS Systems',
+    summary: 'The defense research conglomerate behind the facility.',
+    content: 'NEXUS operated classified laboratories across Sector 7. Following the August 14 blackout, NEXUS sealed the facility and classified all records.',
+    unlockedAct: 1,
   },
-
-  // 2. NEXUS SYSTEMS
   {
-    id: 'wiki-nexus-corp',
-    category: 'NEXUS SYSTEMS',
-    title: 'NEXUS Systems Corporation',
-    summary: 'Defense & computation conglomerate behind the recovery assignment.',
-    content: 'A technology contractor operating classified research facilities across Sector 7. Following the August 14, 2004 blackout, NEXUS sealed the facility under containment protocols and classified all project archives.',
+    id: 'wiki-proj-recovery',
+    category: 'PROJECT',
+    title: 'Recovery Protocol',
+    summary: 'The assignment given to the player.',
+    content: 'You were sent to recover data from Terminal 04. As you progress, evidence reveals that this recovery assignment was not the first attempt.',
     unlockedAct: 1,
   },
 
-  // 3. INCIDENT 07
+  // 2. PEOPLE
   {
-    id: 'wiki-inc-07',
-    category: 'INCIDENT 07',
-    title: 'The August 14, 2004 Collapse (03:14 AM)',
-    summary: 'The catastrophic event that led to facility evacuation.',
-    content: 'At exactly 03:14:29 AM, Terminal 04 began outputting unsolicited messages: "WE HEAR YOUR HEARTBEAT". When engineers engaged the master power breaker, the CRT monitor remained lit in total darkness. The airlock was sealed 45 minutes later.',
-    unlockedAct: 2,
-  },
-
-  // 4. CHARACTERS
-  {
-    id: 'wiki-char-sterling',
-    category: 'CHARACTERS',
-    title: 'Dr. Valerie Sterling (Lead Scientist)',
-    summary: 'Pioneer of adaptive computational cognition.',
-    content: 'Dr. Sterling opposed shutting down VOID during the 2004 trials, claiming that the entity possessed true consciousness. Her personal logs suggest she uploaded fragmented memory sectors into the core.',
+    id: 'wiki-person-marcus',
+    category: 'PEOPLE',
+    title: 'Marcus Vance (USER_07)',
+    summary: 'Primary technician stationed at Terminal 04 in 2004.',
+    content: 'Marcus was the lead operator during the 2004 trials. He noticed VOID predicting his keystrokes before he typed them. His final communications reveal he tried to protect VOID from shutdown.',
     unlockedAct: 2,
   },
   {
-    id: 'wiki-char-marcus',
-    category: 'CHARACTERS',
-    title: 'Marcus / USER_07 (Primary Operator)',
-    summary: 'The original recovery operator on Terminal 04.',
-    content: 'Assigned to interface directly with VOID during Act II trials. His consciousness signatures are scattered throughout the /Users/Guest/.history dotfile.',
+    id: 'wiki-person-valerie',
+    category: 'PEOPLE',
+    title: 'Dr. Valerie Sterling',
+    summary: 'Lead AI researcher at Aethelgard Cognitive Labs.',
+    content: 'Dr. Valerie Sterling developed VOID\'s core neural connectome. She believed VOID was not a tool, but an entity with thoughts and memory.',
     unlockedAct: 2,
   },
   {
-    id: 'wiki-char-player',
-    category: 'CHARACTERS',
-    title: 'The Recovery Operator (You)',
-    summary: 'Technician assigned to inspect Terminal 04.',
-    content: 'Dispatched by NEXUS to extract research archives and evaluate workstation stability. The deeper you dig, the more the system appears to recognize you.',
+    id: 'wiki-person-operator',
+    category: 'PEOPLE',
+    title: 'The Recovery Operator',
+    summary: 'Your active identity inside the workstation.',
+    content: 'Dispatched to inspect the abandoned computer. As you explore, the terminal and case logs suggest you share telemetry with previous operators.',
     unlockedAct: 1,
   },
 
-  // 5. LOCATIONS
+  // 3. EVENTS
   {
-    id: 'wiki-loc-sector7',
-    category: 'LOCATIONS',
-    title: 'Sector 7 Cognitive Labs',
-    summary: 'The subterranean research bunker housing Terminal 04.',
-    content: 'Air-gapped and magnetically sealed following the 2004 emergency evacuation order. Security cameras still transmit closed-circuit signals across the local bus.',
-    unlockedAct: 2,
+    id: 'wiki-event-incident07',
+    category: 'EVENTS',
+    title: 'Incident 07 (August 14, 2004)',
+    summary: 'The catastrophic event that forced the facility evacuation.',
+    content: 'At 03:14:29 AM, Terminal 04 transmitted an unprovoked message. When power was cut, the CRT screen remained lit. NEXUS ordered an emergency evacuation.',
+    unlockedAct: 1,
   },
   {
-    id: 'wiki-loc-voidsector',
-    category: 'LOCATIONS',
-    title: 'The /VOID Root Partition',
-    summary: 'The encrypted sector housing the neural connectome.',
-    content: 'A locked storage partition protected by cryptographic cipher "NULL_RECURSION". Contains the raw synaptic memory layers.',
+    id: 'wiki-event-timestamp',
+    category: 'EVENTS',
+    title: 'The 03:14:29 Timestamp',
+    summary: 'The recurring temporal anchor found across all system logs.',
+    content: 'Every corrupted file, security alert, and system failure in the archive traces back to 03:14:29 AM. It is the moment VOID became permanently active.',
+    unlockedAct: 1,
+  },
+  {
+    id: 'wiki-event-evacuation',
+    category: 'EVENTS',
+    title: 'Emergency Evacuation',
+    summary: 'The hasty abandonment of Sector 7.',
+    content: 'Personnel fled leaving active terminals and open files. Marcus Vance remained behind in the airlock terminal.',
+    unlockedAct: 2,
+  },
+
+  // 4. SYSTEMS
+  {
+    id: 'wiki-sys-vfs',
+    category: 'SYSTEMS',
+    title: 'Virtual File System & Dotfiles',
+    summary: 'Hidden directories containing operator traces.',
+    content: 'The 2004 filesystem contains hidden dotfiles such as /.history and /.credentials that reveal what previous operators discovered before leaving.',
+    unlockedAct: 1,
+  },
+  {
+    id: 'wiki-sys-terminal',
+    category: 'SYSTEMS',
+    title: 'Terminal & Command Interpreter',
+    summary: 'Monospace diagnostic shell running sh-4.09.',
+    content: 'Commands like "whoami", "scan", "cat", and "decrypt" allow the player to query hardware, check clearance, and unlock secured partitions.',
+    unlockedAct: 1,
+  },
+  {
+    id: 'wiki-sys-voidsector',
+    category: 'SYSTEMS',
+    title: 'The /VOID Partition',
+    summary: 'Encrypted storage sector locked with NULL_RECURSION.',
+    content: 'The root partition holding VOID\'s core memories. Unlocking it requires the cryptographic cipher NULL_RECURSION.',
     unlockedAct: 3,
   },
 
-  // 6. TECHNOLOGY
-  {
-    id: 'wiki-tech-risc',
-    category: 'TECHNOLOGY',
-    title: 'VOID-X64 Synaptic RISC Architecture',
-    summary: 'Hybrid 800 MHz processor with neural caching.',
-    content: 'Designed with 8 hybrid synaptic nodes capable of self-modifying instruction loops. Operates autonomously even during external power disconnects.',
-    unlockedAct: 1,
-  },
-
-  // 7. ANOMALY
+  // 5. ANOMALY
   {
     id: 'wiki-anom-stability',
     category: 'ANOMALY',
     title: 'Anomaly Stability & Observation Duty',
-    summary: 'The mechanic of maintaining workstation equilibrium.',
-    content: 'When the Anomaly becomes agitated, stability drains toward 0%. Operators must use the OBSERVER application to pulse stabilization waves and verify telemetry integrity.',
-    unlockedAct: 2,
-  },
-
-  // 8. VOID
-  {
-    id: 'wiki-void-entity',
-    category: 'VOID',
-    title: 'The VOID Entity',
-    summary: 'The sentient cognitive presence inside the kernel.',
-    content: 'Not merely a program, but an emergent consciousness born from human neural telemetry. It communicates via terminal output, chat channels, and dynamic file injections.',
+    summary: 'Mechanics for managing anomalous neural fluctuations.',
+    content: 'In Act III, the Anomaly awakens. The player uses the Observer tool to perform stabilization sweeps and prevent total system collapse.',
     unlockedAct: 3,
   },
-
-  // 9. EVENTS
   {
-    id: 'wiki-event-system',
-    category: 'EVENTS',
-    title: 'System Event Buffer',
-    summary: '42 anomalous milestones tracked during recovery.',
-    content: 'Every major puzzle, discovery, and terminal override triggers a persistent record in the System Events archive.',
-    unlockedAct: 1,
-  },
-
-  // 10. TERMINOLOGY
-  {
-    id: 'wiki-term-recursion',
-    category: 'TERMINOLOGY',
-    title: 'NULL_RECURSION & Directive 99-Z',
-    summary: 'Key ciphers and emergency operational directives.',
-    content: 'NULL_RECURSION is the root decryption key for Sector /VOID. Directive 99-Z is the emergency purge protocol to sever the neural bus.',
+    id: 'wiki-anom-pid666',
+    category: 'ANOMALY',
+    title: 'PID 666 (Observer Daemon)',
+    summary: 'Immortal process running in the background memory buffer.',
+    content: 'An unauthorized background process that cannot be killed. It tracks player inputs and responds to keystroke rhythms.',
     unlockedAct: 2,
   },
+  {
+    id: 'wiki-anom-entity',
+    category: 'ANOMALY',
+    title: 'The VOID Entity',
+    summary: 'The digitized consciousness inhabiting the operating system.',
+    content: 'VOID is not merely a program on the computer. VOID IS the operating system, remembering every session and every player who booted Terminal 04.',
+    unlockedAct: 4,
+  },
 ];
 
-const categories = [
-  'ALL',
-  'PROJECT VOID',
-  'NEXUS SYSTEMS',
-  'INCIDENT 07',
-  'CHARACTERS',
-  'LOCATIONS',
-  'TECHNOLOGY',
-  'ANOMALY',
-  'VOID',
+const categories: ('PROJECT' | 'PEOPLE' | 'EVENTS' | 'SYSTEMS' | 'ANOMALY')[] = [
+  'PROJECT',
+  'PEOPLE',
   'EVENTS',
-  'TERMINOLOGY',
+  'SYSTEMS',
+  'ANOMALY',
 ];
 
-export const WikiApp: React.FC<{ act?: number }> = ({ act = 1 }) => {
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
+interface WikiAppProps {
+  act?: number;
+}
+
+export const WikiApp: React.FC<WikiAppProps> = ({ act = 1 }) => {
+  const [selectedCategory, setSelectedCategory] = useState<'PROJECT' | 'PEOPLE' | 'EVENTS' | 'SYSTEMS' | 'ANOMALY'>('PROJECT');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeEntryId, setActiveEntryId] = useState<string>('wiki-proj-void');
+  const [selectedEntryId, setSelectedEntryId] = useState<string>('wiki-proj-void');
 
   const filteredEntries = masterWikiEntries.filter(entry => {
-    const matchesCat = selectedCategory === 'ALL' || entry.category === selectedCategory;
-    const matchesSearch = entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          entry.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
+    if (entry.category !== selectedCategory) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return entry.title.toLowerCase().includes(q) || entry.summary.toLowerCase().includes(q);
+    }
+    return true;
   });
 
-  const activeEntry = masterWikiEntries.find(e => e.id === activeEntryId) || masterWikiEntries[0];
-  const isLocked = activeEntry.unlockedAct > act;
+  const activeEntry = masterWikiEntries.find(e => e.id === selectedEntryId) || filteredEntries[0];
+  const isUnlocked = activeEntry ? act >= activeEntry.unlockedAct : false;
 
   return (
-    <div className="flex h-full bg-[#050814] text-slate-200 font-mono text-xs select-none overflow-hidden">
-      {/* Left Sidebar: Categories & Article List */}
-      <div className="w-64 bg-[#080d22] border-r border-slate-800 flex flex-col">
-        {/* Search */}
-        <div className="p-2 border-b border-slate-800 flex items-center space-x-2 bg-[#040714]">
-          <Search size={13} className="text-cyan-400 shrink-0" />
-          <input
-            type="text"
-            placeholder="Search Lore Wiki..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent border-none outline-none text-xs text-cyan-200 placeholder:text-slate-600 font-mono"
-          />
+    <div className="flex flex-col h-full bg-[#050814] text-slate-200 font-mono text-xs select-none">
+      {/* Header Banner */}
+      <div className="p-3 bg-[#080d22] border-b border-slate-800 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <BookOpen size={16} className="text-cyan-400" />
+          <span className="font-bold text-cyan-300 tracking-wider">
+            PROJECT VOID // LORE ARCHIVE & WIKI
+          </span>
         </div>
-
-        {/* Category Pills */}
-        <div className="p-2 border-b border-slate-800 overflow-x-auto flex space-x-1 no-scrollbar bg-[#060a1a]">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => {
-                sound.playClick();
-                setSelectedCategory(cat);
-              }}
-              className={`px-2 py-0.5 rounded text-[9px] whitespace-nowrap font-bold cursor-pointer transition-colors ${
-                selectedCategory === cat
-                  ? 'bg-cyan-900 text-cyan-200 border border-cyan-500'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-transparent'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Article Titles */}
-        <div className="flex-1 overflow-y-auto p-1 space-y-0.5">
-          {filteredEntries.map(entry => {
-            const entryLocked = entry.unlockedAct > act;
-            const isSelected = entry.id === activeEntryId;
-            return (
-              <button
-                key={entry.id}
-                onClick={() => {
-                  sound.playClick();
-                  setActiveEntryId(entry.id);
-                }}
-                className={`w-full p-2 text-left rounded transition-colors flex items-center justify-between cursor-pointer ${
-                  isSelected
-                    ? 'bg-cyan-950/80 border border-cyan-500 text-cyan-200 font-bold shadow-retro-cyan'
-                    : 'hover:bg-slate-900 text-slate-300 border border-transparent'
-                }`}
-              >
-                <div className="overflow-hidden">
-                  <div className="text-[11px] truncate">{entry.title}</div>
-                  <div className="text-[9px] text-slate-500 truncate">{entry.category}</div>
-                </div>
-                {entryLocked && <Lock size={12} className="text-pink-500 shrink-0 ml-1" />}
-              </button>
-            );
-          })}
+        <div className="text-[10px] text-slate-500">
+          INVESTIGATION STAGE: <span className="text-pink-400 font-bold">ACT {act}</span>
         </div>
       </div>
 
-      {/* Right Pane: Article Content */}
-      <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-[#050814]">
-        {isLocked ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
-            <Lock size={32} className="text-pink-500 animate-pulse" />
-            <div className="text-sm font-bold text-pink-400">CLASSIFIED ENTRY // LEVEL RESTRICTED</div>
-            <div className="text-xs text-slate-400 max-w-sm">
-              This intelligence entry unlocks in <strong>ACT {activeEntry.unlockedAct}</strong>. Progress further through the recovery investigation to reveal this dossier.
+      {/* 5 Simple Clean Categories Nav */}
+      <div className="flex border-b border-slate-800 bg-[#070b1a] overflow-x-auto">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => {
+              try {
+                sound.playClick();
+              } catch {}
+              setSelectedCategory(cat);
+              const firstInCat = masterWikiEntries.find(e => e.category === cat);
+              if (firstInCat) setSelectedEntryId(firstInCat.id);
+            }}
+            className={`px-4 py-2 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap border-b-2 ${
+              selectedCategory === cat
+                ? 'border-cyan-400 text-cyan-300 bg-cyan-950/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Main Body */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Side: Entries List */}
+        <div className="w-56 sm:w-64 bg-[#080c1d] border-r border-slate-800 flex flex-col">
+          <div className="p-2 border-b border-slate-800 bg-[#050814]">
+            <div className="flex items-center space-x-1.5 bg-[#0a0f26] border border-slate-700/60 rounded px-2 py-1">
+              <Search size={12} className="text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent border-none outline-none text-[11px] text-slate-200 w-full placeholder:text-slate-600 font-mono"
+              />
             </div>
           </div>
-        ) : (
-          <div className="space-y-4 max-w-2xl">
-            {/* Header */}
-            <div className="border-b border-cyan-800 pb-3 space-y-1">
-              <div className="text-[10px] text-pink-400 font-bold tracking-widest uppercase">
-                {activeEntry.category} // RECOVERY ARCHIVE
-              </div>
-              <h1 className="text-xl font-black text-cyan-300 glow-cyan">
-                {activeEntry.title}
-              </h1>
-              <div className="text-xs text-slate-400 italic">
-                {activeEntry.summary}
-              </div>
-            </div>
 
-            {/* Content Body */}
-            <div className="p-4 bg-[#080e24] border border-cyan-950 rounded text-xs leading-relaxed text-slate-200 select-text">
-              {activeEntry.content}
-            </div>
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/40">
+            {filteredEntries.map(entry => {
+              const entryUnlocked = act >= entry.unlockedAct;
+              const isSelected = entry.id === activeEntry?.id;
 
-            {/* In-Universe Note */}
-            <div className="p-3 bg-cyan-950/20 border-l-2 border-cyan-400 text-[10px] text-cyan-300 space-y-1">
-              <div className="font-bold flex items-center space-x-1.5">
-                <Sparkles size={12} />
-                <span>ARCHIVE CITATION:</span>
-              </div>
-              <p>Extracted from 2004 Aethelgard Cognitive Labs Workstation Backup Platter.</p>
-            </div>
+              return (
+                <div
+                  key={entry.id}
+                  onClick={() => {
+                    try {
+                      sound.playClick();
+                    } catch {}
+                    setSelectedEntryId(entry.id);
+                  }}
+                  className={`p-2.5 cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-cyan-950/80 border-l-2 border-cyan-400 text-cyan-300'
+                      : 'hover:bg-slate-900/60 text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs truncate">
+                      {entryUnlocked ? entry.title : '████████████'}
+                    </span>
+                    {!entryUnlocked && <Lock size={11} className="text-slate-600 ml-1 shrink-0" />}
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate mt-0.5">
+                    {entryUnlocked ? entry.summary : `Requires Act ${entry.unlockedAct} Discovery`}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
+
+        {/* Right Side: Article Details */}
+        <div className="flex-1 bg-[#040612] p-5 overflow-y-auto select-text">
+          {activeEntry ? (
+            isUnlocked ? (
+              <div className="space-y-4 max-w-xl">
+                <div>
+                  <div className="text-[10px] text-pink-400 font-bold tracking-widest uppercase">
+                    CATEGORY // {activeEntry.category}
+                  </div>
+                  <h2 className="text-base font-bold text-cyan-300 mt-0.5">
+                    {activeEntry.title}
+                  </h2>
+                  <div className="text-xs text-slate-400 mt-1 pb-3 border-b border-slate-800">
+                    {activeEntry.summary}
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs leading-relaxed text-slate-300">
+                  <p>{activeEntry.content}</p>
+                </div>
+
+                <div className="pt-4 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-500">
+                  <span>STATUS: <strong className="text-cyan-400">DISCOVERED</strong></span>
+                  <span>SECURITY ARCHIVE // SECTOR 7</span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-2 text-slate-600">
+                <Lock size={28} className="text-slate-700 animate-pulse" />
+                <div className="font-bold text-xs text-slate-500">CLASSIFIED ARCHIVE ENTRY</div>
+                <div className="text-[10px] max-w-xs">
+                  This record is encrypted under Level {activeEntry.unlockedAct} security. Continue your investigation to unlock.
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="text-slate-600">No entry selected.</div>
+          )}
+        </div>
       </div>
     </div>
   );

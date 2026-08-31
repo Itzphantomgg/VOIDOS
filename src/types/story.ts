@@ -88,4 +88,5 @@ export interface StoryState {
   currentVoidDialogueStep: number;
   unlockedApps: string[]; // List of AppId strings unlocked on desktop
   unlockedFolders: string[];
+  playerNotes?: { id: string; title: string; content: string; createdAt: string; updatedAt: string; isSystemInjected?: boolean }[];
 }

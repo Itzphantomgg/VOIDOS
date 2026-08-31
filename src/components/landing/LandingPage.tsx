@@ -77,33 +77,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
       {/* Top Navigation Bar - Simple & Restrained */}
       <nav className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#040817]/95 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2.5">
-          <div className="w-6 h-6 bg-cyan-500 text-black flex items-center justify-center font-bold text-xs rounded-xs">
-            V//O
+          <div className="w-6 h-6 bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 flex items-center justify-center font-black text-xs rounded-xs">
+            ⬡
           </div>
-          <span className="font-bold text-sm tracking-wider text-slate-100">VOID//OS</span>
+          <span className="font-bold text-sm tracking-wider text-slate-100">
+            VOID<span className="text-pink-400">//</span>OS
+          </span>
           <span className="text-[10px] text-slate-500 font-normal ml-1 hidden sm:inline">BUILD v1.3.0</span>
         </div>
 
-        {/* Nav Links */}
+        {/* Nav Links: VOID//OS | ABOUT | STORY | WIKI | PROFILE | PLAY */}
         <div className="hidden md:flex items-center space-x-6 text-xs text-slate-400">
           <button onClick={() => scrollToSection('about')} className="hover:text-cyan-300 transition-colors cursor-pointer">
             ABOUT
           </button>
           <button onClick={() => scrollToSection('story')} className="hover:text-cyan-300 transition-colors cursor-pointer">
             STORY
-          </button>
-          <button onClick={() => scrollToSection('system')} className="hover:text-cyan-300 transition-colors cursor-pointer">
-            SYSTEM
-          </button>
-          <button 
-            onClick={() => {
-              sound.playClick();
-              setIsProfileOpen(true);
-            }} 
-            className="hover:text-cyan-300 transition-colors cursor-pointer flex items-center space-x-1"
-          >
-            <User size={13} />
-            <span>PROFILE</span>
           </button>
           <button 
             onClick={() => {
@@ -114,6 +103,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
           >
             <BookOpen size={13} />
             <span>WIKI</span>
+          </button>
+          <button 
+            onClick={() => {
+              sound.playClick();
+              setIsProfileOpen(true);
+            }} 
+            className="hover:text-cyan-300 transition-colors cursor-pointer flex items-center space-x-1"
+          >
+            <User size={13} />
+            <span>PROFILE</span>
           </button>
         </div>
 

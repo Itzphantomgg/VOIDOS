@@ -450,7 +450,8 @@ export const AppContent: React.FC = () => {
 
   // --- Observation Duty Stability Drain Loop ---
   useEffect(() => {
-    if (viewMode !== 'desktop' || (!story.isObservationActive && story.act < 2)) return;
+    // Anomaly strictly only drains stability in Act 3+ when observation duty is active!
+    if (viewMode !== 'desktop' || story.act < 3 || !story.isObservationActive) return;
 
     const interval = setInterval(() => {
       setStory(prev => {
@@ -578,6 +579,25 @@ export const AppContent: React.FC = () => {
     if (appId === 'realitycore') {
       triggerStoryFlag('realitycore_opened');
       triggerStoryFlag('ancient_origin_discovered');
+    }
+
+    // SINGLE NOTE WINDOW RULE:
+    // If a note window already exists, update/focus it rather than spawning overlapping multiple note windows!
+    if (appId === 'notes') {
+      const existingNoteWin = windows.find(w => w && w.appId === 'notes');
+      if (existingNoteWin) {
+        setWindows(prev =>
+          prev.map(w => w && w.id === existingNoteWin.id ? {
+            ...w,
+            isMinimized: false,
+            zIndex: nextZIndex + 1,
+            customData: customData || w.customData,
+          } : w)
+        );
+        setActiveWindowId(existingNoteWin.id);
+        setNextZIndex(prev => prev + 1);
+        return;
+      }
     }
 
     // Check if window is already open
@@ -779,6 +799,39 @@ export const AppContent: React.FC = () => {
     openApp('textviewer', { node, title: `Text Viewer - ${node.name}` });
   };
 
+  // --- Personal Desktop Note Creation Handler ---
+  const handleCreatePersonalNote = useCallback(() => {
+    try {
+      sound.playClick();
+    } catch {}
+
+    const currentNotes = story.playerNotes || [];
+    const count = currentNotes.length + 1;
+    const noteName = `NOTE_${String(count).padStart(2, '0')}.txt`;
+    const newNote = {
+      id: `note-${Date.now()}`,
+      title: noteName,
+      content: '',
+      createdAt: new Date().toLocaleTimeString(),
+      updatedAt: new Date().toLocaleTimeString(),
+    };
+
+    const updatedNotes = [newNote, ...currentNotes];
+    setStory(prev => ({
+      ...prev,
+      playerNotes: updatedNotes,
+    }));
+
+    spawnNotification({
+      appId: 'notes',
+      title: 'FILE CREATED',
+      message: `Personal note "${noteName}" created on Desktop.`,
+      severity: 'normal',
+    }, 'LOW');
+
+    openApp('notes', { activeNoteId: newNote.id });
+  }, [story.playerNotes, openApp, spawnNotification]);
+
   const handleCreateVfsFile = (parentPath: string, name: string, content = '') => {
     const fullPath = parentPath === '/' ? `/${name}` : `${parentPath}/${name}`;
     const newNode: VFSNode = {
@@ -793,6 +846,13 @@ export const AppContent: React.FC = () => {
       content,
     };
     setVfs(prev => ({ ...prev, [fullPath]: newNode }));
+
+    spawnNotification({
+      appId: 'files',
+      title: 'FILE CREATED',
+      message: `Created "${name}" in ${parentPath}.`,
+      severity: 'normal',
+    }, 'LOW');
   };
 
   const handleCreateVfsFolder = (parentPath: string, name: string) => {
@@ -808,6 +868,13 @@ export const AppContent: React.FC = () => {
       modifiedAt: new Date().toLocaleTimeString(),
     };
     setVfs(prev => ({ ...prev, [fullPath]: newNode }));
+
+    spawnNotification({
+      appId: 'files',
+      title: 'FOLDER CREATED',
+      message: `Created folder "${name}" in ${parentPath}.`,
+      severity: 'normal',
+    }, 'LOW');
   };
 
   const handleDeleteVfsFile = (path: string) => {
@@ -848,6 +915,13 @@ Look at the task manager.`,
 
       return copy;
     });
+
+    spawnNotification({
+      appId: 'trash',
+      title: 'FILE DELETED',
+      message: `Moved "${node.name}" to Recycle Bin.`,
+      severity: 'normal',
+    }, 'LOW');
   };
 
   const handleRestoreVfsFile = (trashPath: string) => {
@@ -868,6 +942,13 @@ Look at the task manager.`,
       };
       return copy;
     });
+
+    spawnNotification({
+      appId: 'files',
+      title: 'FILE RECOVERED',
+      message: `Restored "${node.name}" to original directory.`,
+      severity: 'normal',
+    }, 'LOW');
   };
 
   const handleEmptyTrash = () => {
@@ -1057,6 +1138,7 @@ Look at the task manager.`,
             selectedIconIds={selectedIconIds}
             onSelectIcon={(id) => setSelectedIconIds([id])}
             onOpenApp={openApp}
+            onCreateNote={handleCreatePersonalNote}
             onClearSelection={() => setSelectedIconIds([])}
             act={story.act}
             anomalyLevel={story.anomalyLevel}
@@ -1119,6 +1201,8 @@ Look at the task manager.`,
             caseFileDiscoveries={story.caseFileDiscoveries || {}}
             objectives={story.objectives || []}
             unlockedEvents={story.unlockedEvents || []}
+            triggerStoryFlag={triggerStoryFlag}
+            onUpdatePlayerNotes={(notes) => setStory(prev => ({ ...prev, playerNotes: notes }))}
           />
 
           {/* Start Menu Drawer */}

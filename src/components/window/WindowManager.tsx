@@ -74,6 +74,7 @@ interface WindowManagerProps {
   objectives: GameObjective[];
   unlockedEvents?: string[];
   triggerStoryFlag?: (flag: string) => void;
+  onUpdatePlayerNotes?: (notes: any[]) => void;
 }
 
 export const WindowManager: React.FC<WindowManagerProps> = ({
@@ -121,6 +122,7 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   objectives = [],
   unlockedEvents = [],
   triggerStoryFlag,
+  onUpdatePlayerNotes,
 }) => {
   const renderAppContent = (win: OSWindowState) => {
     if (!win) return null;
@@ -251,7 +253,14 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
         );
 
       case 'notes':
-        return <Notes act={act} />;
+        return (
+          <Notes
+            act={act}
+            initialNotes={storyState?.playerNotes}
+            onSaveNotes={onUpdatePlayerNotes}
+            initialActiveNoteId={win.customData?.activeNoteId}
+          />
+        );
 
       case 'mediaplayer':
         return <MediaPlayer initialTrackId={win.customData?.trackId} act={act} />;
