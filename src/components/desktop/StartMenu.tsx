@@ -13,6 +13,7 @@ interface StartMenuProps {
   onHardReset: () => void;
   act: number;
   anomalyLevel: number;
+  unlockedApps?: string[];
 }
 
 export const StartMenu: React.FC<StartMenuProps> = ({
@@ -24,37 +25,43 @@ export const StartMenu: React.FC<StartMenuProps> = ({
   onHardReset,
   act,
   anomalyLevel,
+  unlockedApps = ['files', 'terminal', 'systeminfo', 'casefile', 'trash'],
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   if (!isOpen) return null;
 
-  const appItems: { id: AppId; title: string; desc: string }[] = [
+  const allPossibleApps: { id: AppId; title: string; desc: string }[] = [
     { id: 'objectives', title: 'Recovery Objectives', desc: 'Mission Directives & Tasks [TAB]' },
     { id: 'casefile', title: 'Case File Journal', desc: 'Story Dossier & Investigation' },
     { id: 'files', title: 'File Explorer', desc: 'Browse Virtual File System' },
     { id: 'terminal', title: 'Terminal Diagnostics', desc: 'Monospace Command Line' },
+    { id: 'sysinfo' as any, title: 'System', desc: 'Hardware & Neural Metrics' },
+    { id: 'systeminfo', title: 'System Diagnostics', desc: 'Hardware & Neural Metrics' },
+    { id: 'trash', title: 'Recycle Bin', desc: 'Deleted File Staging' },
+    { id: 'wiki', title: 'Lore Archive & Wiki', desc: 'Project VOID Encyclopedia' },
+    { id: 'achievements', title: 'System Events', desc: 'Milestones & Discoveries' },
+    { id: 'mail', title: 'Mail Client', desc: 'Aethelgard Email' },
     { id: 'browser', title: 'NetSeek Browser', desc: 'Intranet & Web Archive' },
     { id: 'messages', title: 'Messages', desc: 'Operator Chat Channel' },
-    { id: 'mail', title: 'Mail Client', desc: 'Aethelgard Email' },
-    { id: 'taskmanager', title: 'Task Manager', desc: 'Process Telemetry' },
     { id: 'notes', title: 'Notes', desc: 'Technician Scratchpad' },
     { id: 'mediaplayer', title: 'VoidPlayer Media', desc: 'Audio & Synth Visualizer' },
-    { id: 'systeminfo', title: 'System Diagnostics', desc: 'Hardware & Neural Metrics' },
-    { id: 'systemlogs', title: 'Event Viewer Logs', desc: 'Real-time Security Telemetry' },
+    { id: 'camera', title: 'CCTV Camera', desc: 'Sector 7 Closed-Circuit' },
+    { id: 'taskmanager', title: 'Task Manager', desc: 'Process Telemetry' },
+    { id: 'observer', title: 'Observer Telemetry', desc: 'Anomaly Stability Daemon' },
+    { id: 'memory', title: 'Memory Inspector', desc: 'Hex Buffer Connectome' },
+    { id: 'diagnostics', title: 'Diagnostics Scanner', desc: 'Hardware Bus Sweeper' },
+    { id: 'security', title: 'Security Matrix', desc: 'Access Control & Quarantine' },
     { id: 'settings', title: 'Settings', desc: 'Themes, Display & Audio' },
-    { id: 'trash', title: 'Recycle Bin', desc: 'Deleted File Staging' },
+    { id: 'realitycore', title: 'REALITY CORE', desc: 'Consciousness Interface' },
   ];
 
-  if (act >= 3) {
-    appItems.unshift({
-      id: 'realitycore',
-      title: 'REALITY CORE',
-      desc: 'Consciousness Interface',
-    });
-  }
+  // Strictly filter only apps that have been unlocked in the story!
+  const visibleApps = allPossibleApps.filter(app => 
+    unlockedApps.includes(app.id) || app.id === 'objectives'
+  );
 
-  const filteredApps = appItems.filter(app =>
+  const filteredApps = visibleApps.filter(app =>
     app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     app.desc.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -97,14 +104,16 @@ export const StartMenu: React.FC<StartMenuProps> = ({
 
       {/* Main Body */}
       <div className="flex h-72">
-        {/* Left Side: App List */}
+        {/* Left Side: Unlocked App List */}
         <div className="flex-1 overflow-y-auto p-1 space-y-0.5 bg-[#090d1f]">
           {filteredApps.map((app) => (
             <button
               key={app.id}
               onClick={() => {
-                sound.playClick();
-                onOpenApp(app.id);
+                try {
+                  sound.playClick();
+                } catch {}
+                onOpenApp(app.id as AppId);
                 onClose();
               }}
               className="w-full flex items-center space-x-2.5 p-1.5 hover:bg-cyan-950/60 hover:border-cyan-500/50 border border-transparent rounded text-left transition-colors cursor-pointer group"
@@ -144,7 +153,7 @@ export const StartMenu: React.FC<StartMenuProps> = ({
 
           <div className="pt-2 border-t border-slate-800 space-y-1">
             <div className="text-[9px] text-slate-600 text-center">
-              NEXUS SYSTEMS
+              NEXUS SYSTEMS // 2004
             </div>
           </div>
         </div>
@@ -154,7 +163,9 @@ export const StartMenu: React.FC<StartMenuProps> = ({
       <div className="bg-[#060917] p-2 border-t border-slate-800 flex items-center justify-between">
         <button
           onClick={() => {
-            sound.playClick();
+            try {
+              sound.playClick();
+            } catch {}
             onHardReset();
           }}
           className="flex items-center space-x-1 px-2 py-1 bg-red-950/40 hover:bg-red-900/60 border border-red-800 text-red-300 text-[10px] rounded transition-colors cursor-pointer"
@@ -167,7 +178,9 @@ export const StartMenu: React.FC<StartMenuProps> = ({
         <div className="flex space-x-1.5">
           <button
             onClick={() => {
-              sound.playClick();
+              try {
+                sound.playClick();
+              } catch {}
               onReboot();
             }}
             className="flex items-center space-x-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[10px] rounded border border-slate-700 cursor-pointer"
@@ -177,7 +190,9 @@ export const StartMenu: React.FC<StartMenuProps> = ({
           </button>
           <button
             onClick={() => {
-              sound.playClick();
+              try {
+                sound.playClick();
+              } catch {}
               onShutdown();
             }}
             className="flex items-center space-x-1 px-2 py-1 bg-pink-950/80 hover:bg-pink-900 text-pink-300 text-[10px] rounded border border-pink-700 cursor-pointer"

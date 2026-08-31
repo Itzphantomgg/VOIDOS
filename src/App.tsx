@@ -11,6 +11,7 @@ import { StoryState, EndingType, KnowledgeLevel, StoryStage } from './types/stor
 import { initialVFSNodes } from './data/initialFileSystem';
 import { initialStoryState } from './state/storyStore';
 import { saveGameState, loadGameState, resetGameState } from './state/persistence';
+import { eventQueue } from './state/eventQueue';
 import { sound } from './audio/soundEngine';
 
 // Components & Error Boundaries
@@ -26,6 +27,7 @@ import { NotificationContainer } from './components/notifications/NotificationCo
 import { CRTOverlay } from './components/effects/CRTOverlay';
 import { GlitchLayer } from './components/effects/GlitchLayer';
 import { EndingModal } from './components/apps/Endings/EndingModal';
+import { AppInstallerModal } from './components/common/AppInstallerModal';
 import { Maximize2, Minimize2 } from 'lucide-react';
 
 export const AppContent: React.FC = () => {
@@ -36,6 +38,9 @@ export const AppContent: React.FC = () => {
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isFailingSequence, setIsFailingSequence] = useState<boolean>(false);
+
+  // In-Universe App Installer Modal State
+  const [pendingInstall, setPendingInstall] = useState<{ appId: AppId; appName: string } | null>(null);
 
   // Settings
   const [settings, setSettings] = useState<OSSettings>({
@@ -68,7 +73,7 @@ export const AppContent: React.FC = () => {
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
   const [nextZIndex, setNextZIndex] = useState<number>(100);
 
-  // Master Desktop Icons Definition
+  // Master Desktop Icons Registry
   const masterDesktopIcons: DesktopIconItem[] = [
     { id: 'icon-casefile', appId: 'casefile', title: 'Case File', icon: 'Briefcase', x: 20, y: 20 },
     { id: 'icon-files', appId: 'files', title: 'Files', icon: 'Folder', x: 20, y: 100 },
@@ -76,17 +81,21 @@ export const AppContent: React.FC = () => {
     { id: 'icon-sysinfo', appId: 'systeminfo', title: 'System', icon: 'Cpu', x: 20, y: 260 },
     { id: 'icon-trash', appId: 'trash', title: 'Trash', icon: 'Trash2', x: 20, y: 340 },
     // Progressive Discovery Unlocks:
-    { id: 'icon-mail', appId: 'mail', title: 'Mail', icon: 'Mail', x: 100, y: 20 },
-    { id: 'icon-browser', appId: 'browser', title: 'Browser', icon: 'Globe', x: 100, y: 100 },
-    { id: 'icon-messages', appId: 'messages', title: 'Messages', icon: 'MessageSquare', x: 100, y: 180 },
-    { id: 'icon-notes', appId: 'notes', title: 'Notes', icon: 'FileText', x: 100, y: 260 },
-    { id: 'icon-media', appId: 'mediaplayer', title: 'Media', icon: 'Music', x: 100, y: 340 },
-    { id: 'icon-camera', appId: 'camera', title: 'CCTV Camera', icon: 'Camera', x: 180, y: 20 },
-    { id: 'icon-taskmanager', appId: 'taskmanager', title: 'Task Manager', icon: 'Activity', x: 180, y: 100 },
-    { id: 'icon-observer', appId: 'observer', title: 'Observer', icon: 'Eye', x: 180, y: 180 },
-    { id: 'icon-memory', appId: 'memory', title: 'Memory', icon: 'Layers', x: 180, y: 260 },
-    { id: 'icon-settings', appId: 'settings', title: 'Settings', icon: 'Settings', x: 180, y: 340 },
-    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 260, y: 20 },
+    { id: 'icon-wiki', appId: 'wiki', title: 'Wiki Archive', icon: 'BookOpen', x: 100, y: 20 },
+    { id: 'icon-achievements', appId: 'achievements', title: 'Events', icon: 'Award', x: 100, y: 100 },
+    { id: 'icon-mail', appId: 'mail', title: 'Mail', icon: 'Mail', x: 100, y: 180 },
+    { id: 'icon-browser', appId: 'browser', title: 'Browser', icon: 'Globe', x: 100, y: 260 },
+    { id: 'icon-messages', appId: 'messages', title: 'Messages', icon: 'MessageSquare', x: 100, y: 340 },
+    { id: 'icon-notes', appId: 'notes', title: 'Notes', icon: 'FileText', x: 180, y: 20 },
+    { id: 'icon-media', appId: 'mediaplayer', title: 'Media', icon: 'Music', x: 180, y: 100 },
+    { id: 'icon-camera', appId: 'camera', title: 'CCTV Camera', icon: 'Camera', x: 180, y: 180 },
+    { id: 'icon-taskmanager', appId: 'taskmanager', title: 'Task Manager', icon: 'Activity', x: 180, y: 260 },
+    { id: 'icon-observer', appId: 'observer', title: 'Observer', icon: 'Eye', x: 180, y: 340 },
+    { id: 'icon-diagnostics', appId: 'diagnostics', title: 'Diagnostics', icon: 'Zap', x: 260, y: 20 },
+    { id: 'icon-security', appId: 'security', title: 'Security', icon: 'ShieldCheck', x: 260, y: 100 },
+    { id: 'icon-memory', appId: 'memory', title: 'Memory', icon: 'Layers', x: 260, y: 180 },
+    { id: 'icon-settings', appId: 'settings', title: 'Settings', icon: 'Settings', x: 260, y: 260 },
+    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 260, y: 340 },
   ];
 
   const [selectedIconIds, setSelectedIconIds] = useState<string[]>([]);
@@ -154,8 +163,17 @@ export const AppContent: React.FC = () => {
     }, 4000);
   }, []);
 
-  // --- Notification Helper ---
-  const spawnNotification = useCallback((notif: Omit<NotificationItem, 'id' | 'timestamp'>) => {
+  // --- Notification Helper with Event Queue Protection ---
+  const spawnNotification = useCallback((notif: Omit<NotificationItem, 'id' | 'timestamp'>, priority = 'MEDIUM') => {
+    const isEnqueued = eventQueue.enqueue({
+      id: `notif-${notif.title}`,
+      type: 'notification',
+      priority: priority as any,
+      payload: notif,
+    }, 1200);
+
+    if (!isEnqueued) return;
+
     try {
       sound.playNotification();
     } catch {}
@@ -167,20 +185,30 @@ export const AppContent: React.FC = () => {
     setNotifications(prev => [newNotif, ...prev]);
   }, []);
 
-  // --- Progressive Application Unlock Helper ---
-  const unlockApplication = useCallback((appId: string, appName: string) => {
+  // --- In-Universe Progressive Application Unlock Trigger ---
+  const triggerAppInstallation = useCallback((appId: AppId, appName: string) => {
     setStory(prev => {
       const unlocked = Array.isArray(prev.unlockedApps) ? prev.unlockedApps : [];
       if (!unlocked.includes(appId)) {
-        try {
-          sound.playNotification();
-        } catch {}
+        setPendingInstall({ appId, appName });
+      }
+      return prev;
+    });
+  }, []);
+
+  const completeAppInstallation = useCallback(() => {
+    if (!pendingInstall) return;
+    const { appId, appName } = pendingInstall;
+
+    setStory(prev => {
+      const unlocked = Array.isArray(prev.unlockedApps) ? prev.unlockedApps : [];
+      if (!unlocked.includes(appId)) {
         spawnNotification({
           appId: 'system',
-          title: 'NEW APPLICATION INSTALLED',
-          message: `Workstation installed "${appName}". Available on Desktop & Start Menu.`,
+          title: 'APPLICATION INSTALLED',
+          message: `Workstation successfully installed "${appName}". Available on Desktop & Start Menu.`,
           severity: 'normal',
-        });
+        }, 'HIGH');
         return {
           ...prev,
           unlockedApps: [...unlocked, appId],
@@ -188,7 +216,7 @@ export const AppContent: React.FC = () => {
       }
       return prev;
     });
-  }, [spawnNotification]);
+  }, [pendingInstall, spawnNotification]);
 
   // --- Objective Completion Helper ---
   const completeObjective = useCallback((objId: string) => {
@@ -204,7 +232,7 @@ export const AppContent: React.FC = () => {
           title: `✓ OBJECTIVE COMPLETED`,
           message: `${obj.title}: ${obj.shortTask || obj.title}`,
           severity: 'normal',
-        });
+        }, 'HIGH');
 
         const updatedObjs = objs.map(o => {
           if (o && o.id === objId) return { ...o, isCompleted: true };
@@ -237,7 +265,7 @@ export const AppContent: React.FC = () => {
           title: 'CASE FILE DOSSIER UPDATED',
           message: `New intelligence recorded for ${entryId.replace('case-', '').toUpperCase()}.`,
           severity: 'normal',
-        });
+        }, 'LOW');
         return {
           ...prev,
           caseFileDiscoveries: {
@@ -260,12 +288,12 @@ export const AppContent: React.FC = () => {
           title: `SYSTEM EVENT DISCOVERED: ${eventId}`,
           message: `Anomalous pattern registered in system event buffer.`,
           severity: 'anomaly',
-        });
+        }, 'HIGH');
 
         return {
           ...prev,
           unlockedEvents: [...events, eventId],
-          anomalyLevel: Math.min(100, prev.anomalyLevel + 10),
+          anomalyLevel: Math.min(100, prev.anomalyLevel + 8),
         };
       }
       return prev;
@@ -286,8 +314,11 @@ export const AppContent: React.FC = () => {
     }));
 
     if (newAct >= 2) {
-      unlockApplication('taskmanager', 'Task Manager');
-      unlockApplication('observer', 'Observer Telemetry');
+      triggerAppInstallation('taskmanager', 'Task Manager');
+      triggerAppInstallation('observer', 'Observer Telemetry');
+      triggerAppInstallation('diagnostics', 'Diagnostics Scanner');
+      triggerAppInstallation('wiki', 'Lore Archive & Wiki');
+      triggerAppInstallation('achievements', 'System Events');
     }
 
     spawnNotification({
@@ -295,8 +326,8 @@ export const AppContent: React.FC = () => {
       title: `STAGE ADVANCEMENT: ACT ${newAct}`,
       message: `System parameters shifted. Observation Duty active.`,
       severity: 'critical',
-    });
-  }, [spawnNotification, unlockApplication]);
+    }, 'CRITICAL');
+  }, [spawnNotification, triggerAppInstallation]);
 
   // --- Observation Duty Stability Drain Loop ---
   useEffect(() => {
@@ -348,7 +379,7 @@ export const AppContent: React.FC = () => {
           title: 'SYSTEM RECOVERY INITIALIZED',
           message: 'Checkpoint restored. Observation duty stabilized.',
           severity: 'warning',
-        });
+        }, 'CRITICAL');
       }, 3500);
       return () => clearTimeout(timer);
     }
@@ -358,7 +389,7 @@ export const AppContent: React.FC = () => {
   const handleStabilizePulse = () => {
     setStory(prev => ({
       ...prev,
-      anomalyStability: Math.min(100, prev.anomalyStability + 25),
+      anomalyStability: Math.min(100, prev.anomalyStability + 35),
       counters: {
         ...prev.counters,
         stabilizationsDone: (prev.counters?.stabilizationsDone || 0) + 1,
@@ -369,14 +400,14 @@ export const AppContent: React.FC = () => {
   const handleRunDiagnosticSweep = () => {
     setStory(prev => ({
       ...prev,
-      anomalyStability: Math.min(100, prev.anomalyStability + 15),
+      anomalyStability: Math.min(100, prev.anomalyStability + 20),
     }));
   };
 
   const handleVerifyIntegrity = () => {
     setStory(prev => ({
       ...prev,
-      anomalyStability: Math.min(100, prev.anomalyStability + 10),
+      anomalyStability: Math.min(100, prev.anomalyStability + 15),
     }));
   };
 
@@ -430,6 +461,11 @@ export const AppContent: React.FC = () => {
       memory: 'Memory Hex Buffer Inspector',
       observer: 'Observer Telemetry Daemon',
       realitycore: 'REALITY CORE // CONSCIOUSNESS',
+      wiki: 'Lore Archive & Wiki // Project VOID',
+      achievements: 'System Events & Milestones',
+      security: 'Security Matrix & Access Control',
+      diagnostics: 'Hardware Bus Diagnostics',
+      quarantine: 'Process & Binary Quarantine',
       imageviewer: 'Image Viewer',
       textviewer: 'Text Viewer',
       hexviewer: 'Hex Viewer',
@@ -448,8 +484,8 @@ export const AppContent: React.FC = () => {
         y: Math.min(window.innerHeight - 480, Math.max(30, 40 + cascadeOffset)),
       },
       size: {
-        width: appId === 'terminal' || appId === 'browser' || appId === 'casefile' || appId === 'objectives' ? 700 : 600,
-        height: appId === 'terminal' || appId === 'casefile' || appId === 'objectives' ? 450 : 400,
+        width: appId === 'terminal' || appId === 'browser' || appId === 'casefile' || appId === 'objectives' || appId === 'wiki' ? 700 : 600,
+        height: appId === 'terminal' || appId === 'casefile' || appId === 'objectives' || appId === 'wiki' ? 460 : 400,
       },
       isMinimized: false,
       isMaximized: false,
@@ -514,8 +550,8 @@ export const AppContent: React.FC = () => {
       completeObjective('obj-find-report');
       completeObjective('obj-read-report');
       unlockCaseFileEntry('case-file-recoveryreport', 'KNOWN');
-      unlockApplication('mail', 'Aethelgard Mail');
-      unlockApplication('browser', 'NetSeek Browser');
+      triggerAppInstallation('mail', 'Aethelgard Mail');
+      triggerAppInstallation('browser', 'NetSeek Browser');
     }
 
     if (node.path && node.path.includes('incident_07')) {
@@ -524,8 +560,8 @@ export const AppContent: React.FC = () => {
       unlockCaseFileEntry('case-event-incident07', 'KNOWN');
       unlockCaseFileEntry('case-proj-void', 'PARTIALLY_KNOWN');
       unlockCaseFileEntry('case-person-sterling', 'PARTIALLY_KNOWN');
-      unlockApplication('messages', 'Messages');
-      unlockApplication('notes', 'Notes');
+      triggerAppInstallation('messages', 'Messages');
+      triggerAppInstallation('notes', 'Notes');
       triggerClockGlitch();
       advanceAct(2, 'STAGE_2_INCIDENT');
 
@@ -580,8 +616,8 @@ MAGNETIC AIRLOCK SEAL ENGAGED.`,
     if (node.path && (node.path.includes('security_log') || node.path.includes('camera_01.dat'))) {
       triggerClockGlitch();
       unlockCaseFileEntry('case-unk-observer', 'PARTIALLY_KNOWN');
-      unlockApplication('camera', 'CCTV Camera Feed');
-      unlockApplication('mediaplayer', 'VoidPlayer Media');
+      triggerAppInstallation('camera', 'CCTV Camera Feed');
+      triggerAppInstallation('mediaplayer', 'VoidPlayer Media');
     }
 
     if (node.path && (node.path.includes('project_void') || node.path.includes('DECRYPT_KEY_VAULT'))) {
@@ -745,8 +781,9 @@ Look at the task manager.`,
       completeObjective('obj-decrypt-void');
       unlockCaseFileEntry('case-loc-voidsector', 'KNOWN');
       unlockCaseFileEntry('case-theory-nature', 'KNOWN');
-      unlockApplication('memory', 'Memory Buffer');
-      unlockApplication('realitycore', 'REALITY CORE');
+      triggerAppInstallation('memory', 'Memory Buffer');
+      triggerAppInstallation('security', 'Security Matrix');
+      triggerAppInstallation('realitycore', 'REALITY CORE');
       advanceAct(3, 'STAGE_4_REVELATION');
       return true;
     }
@@ -790,7 +827,21 @@ Look at the task manager.`,
         <BootScreen onBootComplete={() => setViewMode('desktop')} />
       )}
 
-      {/* 3. Safe Failure Sequence Overlay (03:14 Blackout recovery) */}
+      {/* 3. In-Universe Application Installer Modal */}
+      {pendingInstall && (
+        <AppInstallerModal
+          appId={pendingInstall.appId}
+          appName={pendingInstall.appName}
+          onComplete={completeAppInstallation}
+          onLaunchNow={() => {
+            completeAppInstallation();
+            openApp(pendingInstall.appId);
+            setPendingInstall(null);
+          }}
+        />
+      )}
+
+      {/* 4. Safe Failure Sequence Overlay (03:14 Blackout recovery) */}
       {isFailingSequence && (
         <div className="fixed inset-0 z-[999999] bg-black text-red-500 font-mono text-sm flex flex-col items-center justify-center p-6 select-none">
           <div className="space-y-3 text-center max-w-md">
@@ -807,7 +858,7 @@ Look at the task manager.`,
         </div>
       )}
 
-      {/* 4. BSOD Crash Screen */}
+      {/* 5. BSOD Crash Screen */}
       {bsodReason && (
         <BSODScreen
           reason={bsodReason}
@@ -818,7 +869,7 @@ Look at the task manager.`,
         />
       )}
 
-      {/* 5. Ending Modal */}
+      {/* 6. Ending Modal */}
       {story.activeEnding && (
         <EndingModal
           ending={story.activeEnding}
@@ -827,7 +878,7 @@ Look at the task manager.`,
         />
       )}
 
-      {/* 6. Main Desktop Workstation Environment */}
+      {/* 7. Main Desktop Workstation Environment */}
       {viewMode === 'desktop' && (
         <div
           onClick={() => {
@@ -836,15 +887,14 @@ Look at the task manager.`,
           }}
           className="flex-1 w-full flex flex-col overflow-hidden relative"
         >
-          {/* Subtle Top-Right Fullscreen Control Button */}
-          <div className="absolute top-2 right-64 z-[9970]">
+          {/* Subtle Top-Right Fullscreen Symbol Control */}
+          <div className="absolute top-2.5 right-72 sm:right-84 z-[9970]">
             <button
               onClick={toggleFullscreen}
-              className="px-2 py-1 bg-[#060a18]/90 hover:bg-cyan-950 border border-cyan-700/80 text-cyan-300 text-[10px] font-mono font-bold rounded shadow-retro-cyan flex items-center space-x-1.5 cursor-pointer transition-all"
-              title="Toggle Browser Fullscreen"
+              className="p-1.5 bg-[#060a18]/85 hover:bg-cyan-950 border border-cyan-700/70 text-cyan-300 text-[10px] font-mono rounded shadow-retro-cyan flex items-center justify-center cursor-pointer transition-all"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
             >
-              {isFullscreen ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
-              <span>{isFullscreen ? 'EXIT FS' : 'FULLSCREEN'}</span>
+              {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>
           </div>
 
@@ -914,6 +964,7 @@ Look at the task manager.`,
             onVerifyIntegrity={handleVerifyIntegrity}
             caseFileDiscoveries={story.caseFileDiscoveries || {}}
             objectives={story.objectives || []}
+            unlockedEvents={story.unlockedEvents || []}
           />
 
           {/* Start Menu Drawer */}
@@ -929,6 +980,7 @@ Look at the task manager.`,
             onHardReset={handleHardResetGame}
             act={story.act}
             anomalyLevel={story.anomalyLevel}
+            unlockedApps={story.unlockedApps || []}
           />
 
           {/* Notification Toasts & Drawer */}

@@ -109,7 +109,7 @@ export const EndingModal: React.FC<EndingModalProps> = ({ ending, onRestart, unl
       >
         <div className="space-y-2">
           <div className="text-xs tracking-[0.3em] font-bold text-slate-400">
-            RECOVERY ASSIGNMENT RESOLUTION // BUILD v1.2.0
+            RECOVERY ASSIGNMENT RESOLUTION // BUILD v1.3.0
           </div>
           <h1
             className="text-xl sm:text-3xl font-black tracking-wider"

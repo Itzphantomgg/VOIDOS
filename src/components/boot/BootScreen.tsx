@@ -16,7 +16,7 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
 
   const bootSequence = [
     'VOID//OS RECOVERY TERMINAL',
-    'NEXUS SYSTEMS // RECOVERY ENVIRONMENT (BUILD v1.2.0)',
+    'NEXUS SYSTEMS // RECOVERY ENVIRONMENT (BUILD v1.3.0)',
     '====================================================',
     'SYSTEM CHECK ........................ COMPLETE',
     'KERNEL .............................. OK',
@@ -356,8 +356,10 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
               </button>
             </div>
             <div className="space-y-2 text-[11px] text-slate-300 leading-relaxed">
-              <p><strong>VOID//OS v1.2.0</strong> is an interactive digital mystery, ARG, and digital horror experience.</p>
-              <p>Created with passion for retro-computing, Y2K glitchcore, and experimental cognitive storytelling.</p>
+              <p><strong>VOID//OS v1.3.0</strong> is an interactive digital mystery, ARG, and digital horror experience.</p>
+              <p>Created by <strong>Paarth</strong>.</p>
+              <p>GitHub: <a href="https://github.com/Itzphantomgg/Paarth" target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline">https://github.com/Itzphantomgg/Paarth</a></p>
+              <p>Feedback: <a href="mailto:paarth.archive@gmail.com" className="text-pink-400 underline">paarth.archive@gmail.com</a></p>
             </div>
             <div className="pt-2 text-right">
               <button onClick={() => setActiveModal(null)} className="px-4 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-600 rounded cursor-pointer">

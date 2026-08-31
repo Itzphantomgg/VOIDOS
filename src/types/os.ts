@@ -19,7 +19,12 @@ export type AppId =
   | 'imageviewer'
   | 'textviewer'
   | 'hexviewer'
-  | 'realitycore';
+  | 'realitycore'
+  | 'wiki'
+  | 'achievements'
+  | 'diagnostics'
+  | 'security'
+  | 'quarantine';
 
 export interface WindowPosition {
   x: number;

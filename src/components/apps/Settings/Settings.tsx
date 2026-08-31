@@ -42,7 +42,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
         <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
           <div><strong>SYSTEM:</strong> VOID//OS</div>
-          <div><strong>BUILD:</strong> <span className="text-pink-400 font-bold">v1.2.0</span></div>
+          <div><strong>BUILD:</strong> <span className="text-pink-400 font-bold">v1.3.0</span></div>
           <div><strong>ENVIRONMENT:</strong> Browser WebEngine</div>
           <div><strong>MODE:</strong> Interactive Recovery Workstation</div>
           <div><strong>CLEARANCE:</strong> LEVEL 4 RESTRICTED</div>

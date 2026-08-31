@@ -23,6 +23,10 @@ import { CameraApp } from '../apps/Camera/CameraApp';
 import { MemoryApp } from '../apps/Memory/MemoryApp';
 import { ObserverApp } from '../apps/Observer/ObserverApp';
 import { ObjectivesModal } from '../apps/Objectives/ObjectivesModal';
+import { WikiApp } from '../apps/Wiki/WikiApp';
+import { AchievementsApp } from '../apps/Achievements/AchievementsApp';
+import { SecurityApp } from '../apps/Security/SecurityApp';
+import { DiagnosticsApp } from '../apps/Diagnostics/DiagnosticsApp';
 
 interface WindowManagerProps {
   windows: OSWindowState[];
@@ -67,6 +71,7 @@ interface WindowManagerProps {
   onVerifyIntegrity?: () => void;
   caseFileDiscoveries: Record<string, KnowledgeLevel>;
   objectives: GameObjective[];
+  unlockedEvents?: string[];
 }
 
 export const WindowManager: React.FC<WindowManagerProps> = ({
@@ -111,6 +116,7 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   onVerifyIntegrity,
   caseFileDiscoveries = {},
   objectives = [],
+  unlockedEvents = [],
 }) => {
   const renderAppContent = (win: OSWindowState) => {
     if (!win) return null;
@@ -132,6 +138,18 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
             act={act}
           />
         );
+
+      case 'wiki':
+        return <WikiApp act={act} />;
+
+      case 'achievements':
+        return <AchievementsApp unlockedEvents={unlockedEvents} act={act} />;
+
+      case 'security':
+        return <SecurityApp act={act} anomalyLevel={anomalyLevel} />;
+
+      case 'diagnostics':
+        return <DiagnosticsApp act={act} anomalyLevel={anomalyLevel} />;
 
       case 'files':
         return (

@@ -19,7 +19,12 @@ import {
   Briefcase,
   Camera,
   Layers,
-  Target
+  Target,
+  BookOpen,
+  Award,
+  ShieldCheck,
+  Zap,
+  Radio
 } from 'lucide-react';
 
 interface AppIconProps {
@@ -65,6 +70,16 @@ export const AppIcon: React.FC<AppIconProps> = ({ appId, className = '', size = 
     case 'realitycore':
     case 'observer':
       return <Eye className={`text-pink-500 animate-pulse drop-shadow-[0_0_12px_rgba(255,0,127,0.8)] ${className}`} size={size} />;
+    case 'wiki':
+      return <BookOpen className={`text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.5)] ${className}`} size={size} />;
+    case 'achievements':
+      return <Award className={`text-amber-400 drop-shadow-[0_0_8px_rgba(255,170,0,0.5)] ${className}`} size={size} />;
+    case 'security':
+      return <ShieldCheck className={`text-green-400 drop-shadow-[0_0_8px_rgba(0,255,102,0.5)] ${className}`} size={size} />;
+    case 'diagnostics':
+      return <Zap className={`text-yellow-400 drop-shadow-[0_0_8px_rgba(255,200,0,0.5)] ${className}`} size={size} />;
+    case 'quarantine':
+      return <Radio className={`text-red-500 drop-shadow-[0_0_8px_rgba(255,51,102,0.6)] ${className}`} size={size} />;
     case 'locked':
       return <Lock className={`text-pink-500 ${className}`} size={size} />;
     default:
