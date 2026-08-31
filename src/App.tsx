@@ -7,9 +7,11 @@ import {
   NotificationItem 
 } from './types/os';
 import { VFSNode } from './types/fs';
-import { StoryState, EndingType, KnowledgeLevel, StoryStage } from './types/story';
+import { StoryState, EndingType, KnowledgeLevel, StoryStage, StoryAct } from './types/story';
 import { initialVFSNodes } from './data/initialFileSystem';
 import { initialStoryState } from './state/storyStore';
+import { StoryEngine } from './state/storyEngine';
+import { masterStoryActs } from './data/storyActs';
 import { saveGameState, loadGameState, resetGameState } from './state/persistence';
 import { eventQueue } from './state/eventQueue';
 import { sound } from './audio/soundEngine';
@@ -28,6 +30,8 @@ import { CRTOverlay } from './components/effects/CRTOverlay';
 import { GlitchLayer } from './components/effects/GlitchLayer';
 import { EndingModal } from './components/apps/Endings/EndingModal';
 import { AppInstallerModal } from './components/common/AppInstallerModal';
+import { ActTransitionModal } from './components/common/ActTransitionModal';
+import { StoryDebugPanel } from './components/common/StoryDebugPanel';
 import { Maximize2, Minimize2 } from 'lucide-react';
 
 export const AppContent: React.FC = () => {
@@ -41,6 +45,16 @@ export const AppContent: React.FC = () => {
 
   // In-Universe App Installer Modal State
   const [pendingInstall, setPendingInstall] = useState<{ appId: AppId; appName: string } | null>(null);
+
+  // In-Universe Act Transition Modal State
+  const [pendingActTransition, setPendingActTransition] = useState<{
+    fromAct: StoryAct;
+    toAct: StoryAct;
+    unlockedPackageName: string;
+  } | null>(null);
+
+  // Story Progression Debugger Overlay State (F2 or Ctrl+Shift+D)
+  const [isStoryDebugOpen, setIsStoryDebugOpen] = useState<boolean>(false);
 
   // Settings
   const [settings, setSettings] = useState<OSSettings>({
@@ -218,6 +232,113 @@ export const AppContent: React.FC = () => {
     });
   }, [pendingInstall, spawnNotification]);
 
+  // --- Story Flag & Objective Progression Engine ---
+  const triggerStoryFlag = useCallback((flag: string) => {
+    if (!flag) return;
+
+    setStory(prev => {
+      if (prev.flags?.[flag]) return prev; // Already recorded
+
+      const updatedFlags = { ...(prev.flags || {}), [flag]: true };
+
+      // Check if this flag satisfied an objective in the current act
+      const currentActObjectives = masterStoryActs[prev.act] || [];
+      const completedObj = currentActObjectives.find(o => o.onCompleteFlag === flag);
+
+      if (completedObj) {
+        try {
+          sound.playNotification();
+        } catch {}
+
+        spawnNotification({
+          appId: 'system',
+          title: `✓ OBJECTIVE COMPLETED`,
+          message: `${completedObj.title}: ${completedObj.task}`,
+          severity: 'normal',
+        }, 'HIGH');
+      }
+
+      // Check if current Act is now 100% complete!
+      const isActNowComplete = StoryEngine.isActComplete(prev.act, updatedFlags);
+
+      if (isActNowComplete && prev.act < 5) {
+        const nextActNum = (prev.act + 1) as StoryAct;
+        const packageNames: Record<StoryAct, string> = {
+          1: 'Archive Classified Vault',
+          2: 'Archive Classified Vault',
+          3: 'Observer Biometric Telemetry & Daemon Controls',
+          4: 'Memory Connectome & Communication Relays',
+          5: 'REALITY CORE Master Consciousness Interface',
+        };
+
+        // Schedule transition modal
+        setTimeout(() => {
+          setPendingActTransition({
+            fromAct: prev.act,
+            toAct: nextActNum,
+            unlockedPackageName: packageNames[nextActNum] || 'System Upgrade Package',
+          });
+        }, 500);
+      }
+
+      return {
+        ...prev,
+        flags: updatedFlags,
+      };
+    });
+  }, [spawnNotification]);
+
+  // --- In-Universe Act Transition Completion ---
+  const handleCompleteActTransition = useCallback(() => {
+    if (!pendingActTransition) return;
+    const { toAct } = pendingActTransition;
+
+    setStory(prev => {
+      const unlocked = Array.isArray(prev.unlockedApps) ? [...prev.unlockedApps] : [];
+      const unlockedDirs = Array.isArray(prev.unlockedFolders) ? [...prev.unlockedFolders] : [];
+
+      if (toAct === 2) {
+        if (!unlockedDirs.includes('/Archive')) unlockedDirs.push('/Archive');
+        if (!unlocked.includes('taskmanager')) unlocked.push('taskmanager');
+        if (!unlocked.includes('wiki')) unlocked.push('wiki');
+        if (!unlocked.includes('achievements')) unlocked.push('achievements');
+      } else if (toAct === 3) {
+        if (!unlocked.includes('observer')) unlocked.push('observer');
+        if (!unlocked.includes('diagnostics')) unlocked.push('diagnostics');
+        if (!unlocked.includes('security')) unlocked.push('security');
+      } else if (toAct === 4) {
+        if (!unlocked.includes('memory')) unlocked.push('memory');
+        if (!unlocked.includes('messages')) unlocked.push('messages');
+      } else if (toAct === 5) {
+        if (!unlocked.includes('realitycore')) unlocked.push('realitycore');
+      }
+
+      return {
+        ...prev,
+        act: toAct,
+        stage: (toAct === 2 ? 'STAGE_2_INCIDENT' : toAct === 3 ? 'STAGE_3_CONTACT' : toAct === 4 ? 'STAGE_4_REVELATION' : 'STAGE_5_DECISION') as StoryStage,
+        anomalyLevel: Math.max(prev.anomalyLevel, (toAct - 1) * 20),
+        isObservationActive: toAct >= 3,
+        unlockedApps: unlocked,
+        unlockedFolders: unlockedDirs,
+      };
+    });
+
+    setPendingActTransition(null);
+  }, [pendingActTransition]);
+
+  // Global Keyboard Listener for Story Debugger (F2 or Ctrl+Shift+D)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2' || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd')) {
+        e.preventDefault();
+        setIsStoryDebugOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // --- Objective Completion Helper ---
   const completeObjective = useCallback((objId: string) => {
     setStory(prev => {
@@ -310,13 +431,11 @@ export const AppContent: React.FC = () => {
       act: Math.max(prev.act, newAct) as any,
       stage: newStage || (newAct === 2 ? 'STAGE_2_INCIDENT' : newAct === 3 ? 'STAGE_3_CONTACT' : 'STAGE_4_REVELATION'),
       anomalyLevel: Math.max(prev.anomalyLevel, newAct * 20),
-      isObservationActive: newAct >= 2,
+      isObservationActive: newAct >= 3,
     }));
 
     if (newAct >= 2) {
       triggerAppInstallation('taskmanager', 'Task Manager');
-      triggerAppInstallation('observer', 'Observer Telemetry');
-      triggerAppInstallation('diagnostics', 'Diagnostics Scanner');
       triggerAppInstallation('wiki', 'Lore Archive & Wiki');
       triggerAppInstallation('achievements', 'System Events');
     }
@@ -324,7 +443,7 @@ export const AppContent: React.FC = () => {
     spawnNotification({
       appId: 'system',
       title: `STAGE ADVANCEMENT: ACT ${newAct}`,
-      message: `System parameters shifted. Observation Duty active.`,
+      message: `System parameters shifted. Investigation stage updated.`,
       severity: 'critical',
     }, 'CRITICAL');
   }, [spawnNotification, triggerAppInstallation]);
@@ -387,6 +506,8 @@ export const AppContent: React.FC = () => {
 
   // Counterplay actions
   const handleStabilizePulse = () => {
+    triggerStoryFlag('first_stabilization_done');
+    triggerStoryFlag('biometrics_verified');
     setStory(prev => ({
       ...prev,
       anomalyStability: Math.min(100, prev.anomalyStability + 35),
@@ -418,17 +539,45 @@ export const AppContent: React.FC = () => {
     } catch {}
 
     if (appId === 'files') {
-      completeObjective('obj-inspect');
-      completeObjective('obj-open-files');
+      triggerStoryFlag('recovery_folder_located');
+    }
+
+    if (appId === 'systeminfo') {
+      triggerStoryFlag('sysinfo_checked');
+      triggerStoryFlag('clearance_checked');
     }
 
     if (appId === 'casefile') {
-      completeObjective('obj-open-casefile');
+      triggerStoryFlag('act1_casefile_synced');
+    }
+
+    if (appId === 'camera') {
+      triggerStoryFlag('camera_app_installed');
+      triggerStoryFlag('camera03_reviewed');
+    }
+
+    if (appId === 'observer') {
+      triggerStoryFlag('observer_opened');
+    }
+
+    if (appId === 'taskmanager') {
+      triggerStoryFlag('rogue_daemon_detected');
+    }
+
+    if (appId === 'memory') {
+      triggerStoryFlag('memory_app_opened');
+      triggerStoryFlag('marcus_signature_found');
     }
 
     if (appId === 'messages') {
-      completeObjective('obj-user07');
+      triggerStoryFlag('messages_app_installed');
+      triggerStoryFlag('void_communication_received');
       unlockCaseFileEntry('case-person-user07', 'KNOWN');
+    }
+
+    if (appId === 'realitycore') {
+      triggerStoryFlag('realitycore_opened');
+      triggerStoryFlag('ancient_origin_discovered');
     }
 
     // Check if window is already open
@@ -546,88 +695,70 @@ export const AppContent: React.FC = () => {
     } catch {}
     triggerStoryEvent('EVENT_004');
 
+    // Act I Narrative Triggers
     if (node.path && node.path.includes('recovery_report')) {
-      completeObjective('obj-find-report');
-      completeObjective('obj-read-report');
+      triggerStoryFlag('recovery_report_read');
       unlockCaseFileEntry('case-file-recoveryreport', 'KNOWN');
-      triggerAppInstallation('mail', 'Aethelgard Mail');
-      triggerAppInstallation('browser', 'NetSeek Browser');
     }
 
-    if (node.path && node.path.includes('incident_07')) {
-      completeObjective('obj-incident');
-      unlockCaseFileEntry('case-file-incident07', 'KNOWN');
+    if (node.path && node.path.includes('config.dat')) {
+      triggerStoryFlag('credentials_recovered');
+    }
+
+    if (node.path && (node.path.includes('operator_07') || node.path.includes('operator.txt'))) {
+      triggerStoryFlag('user07_identified');
+      triggerStoryFlag('timestamp_0314_found');
+      unlockCaseFileEntry('case-person-user07', 'KNOWN');
+    }
+
+    if (node.path && node.path.includes('system_0314.log')) {
+      triggerStoryFlag('system_log_0314_viewed');
+      triggerStoryFlag('timestamp_0314_found');
       unlockCaseFileEntry('case-event-incident07', 'KNOWN');
-      unlockCaseFileEntry('case-proj-void', 'PARTIALLY_KNOWN');
-      unlockCaseFileEntry('case-person-sterling', 'PARTIALLY_KNOWN');
-      triggerAppInstallation('messages', 'Messages');
-      triggerAppInstallation('notes', 'Notes');
-      triggerClockGlitch();
-      advanceAct(2, 'STAGE_2_INCIDENT');
-
-      // Dynamic folder /Documents/Incident_07 appears!
-      setVfs(prev => {
-        if (prev['/Documents/Incident_07']) return prev;
-        return {
-          ...prev,
-          '/Documents/Incident_07': {
-            id: 'node-inc07-dir',
-            name: 'Incident_07',
-            type: 'folder',
-            path: '/Documents/Incident_07',
-            parentPath: '/Documents',
-            size: 4096,
-            createdAt: '2004-08-14 03:14:00',
-            modifiedAt: '2004-08-14 03:14:00',
-          },
-          '/Documents/Incident_07/witness_statement_0314.txt': {
-            id: 'node-inc07-witness',
-            name: 'witness_statement_0314.txt',
-            type: 'text',
-            path: '/Documents/Incident_07/witness_statement_0314.txt',
-            parentPath: '/Documents/Incident_07',
-            size: 1450,
-            createdAt: '2004-08-14 03:30:00',
-            modifiedAt: '2004-08-14 03:30:00',
-            content: `WITNESS STATEMENT // KEITH RAMIREZ (LEAD SYSTEMS)
-"At 03:14:29, the terminal started printing words before Marcus even touched the keyboard.
-It said: 'WE HEAR YOUR HEARTBEAT'.
-Dr. Sterling shouted that we couldn't shut it down because it was alive.
-When we pulled the master breaker, the CRT remained illuminated in the dark."`,
-          },
-          '/Documents/Incident_07/evacuation_order.txt': {
-            id: 'node-inc07-evac',
-            name: 'evacuation_order.txt',
-            type: 'text',
-            path: '/Documents/Incident_07/evacuation_order.txt',
-            parentPath: '/Documents/Incident_07',
-            size: 890,
-            createdAt: '2004-08-14 04:00:00',
-            modifiedAt: '2004-08-14 04:00:00',
-            content: `NEXUS DIRECTIVE 07-EVAC
-ALL STAFF TO EVACUATE SECTOR 7 IMMEDIATELY.
-DO NOT POWER DOWN WORKSTATION TERMINAL 04.
-MAGNETIC AIRLOCK SEAL ENGAGED.`,
-          },
-        };
-      });
     }
 
-    if (node.path && (node.path.includes('security_log') || node.path.includes('camera_01.dat'))) {
-      triggerClockGlitch();
-      unlockCaseFileEntry('case-unk-observer', 'PARTIALLY_KNOWN');
-      triggerAppInstallation('camera', 'CCTV Camera Feed');
-      triggerAppInstallation('mediaplayer', 'VoidPlayer Media');
+    if (node.path && node.path.includes('corrupted_buffer.dat')) {
+      triggerStoryFlag('log_line_recovered');
     }
 
-    if (node.path && (node.path.includes('project_void') || node.path.includes('DECRYPT_KEY_VAULT'))) {
+    if (node.path && node.path.includes('recovered_entry.txt')) {
+      triggerStoryFlag('recovered_line_read');
+      unlockCaseFileEntry('case-theory-nature', 'KNOWN');
+    }
+
+    if (node.path && (node.path.includes('Incident_07') || node.path.includes('incident_07'))) {
+      triggerStoryFlag('incident07_discovered');
+    }
+
+    // Act II Narrative Triggers
+    if (node.path && node.path.includes('marcus_record')) {
+      triggerStoryFlag('marcus_record_read');
+      unlockCaseFileEntry('case-person-user07', 'KNOWN');
+    }
+
+    if (node.path && node.path.includes('marcus_journal')) {
+      triggerStoryFlag('marcus_journal_read');
       unlockCaseFileEntry('case-proj-void', 'KNOWN');
+    }
+
+    if (node.path && node.path.includes('security_report_0814')) {
+      triggerStoryFlag('security_report_read');
       unlockCaseFileEntry('case-loc-sector7', 'KNOWN');
     }
 
-    if (node.path && node.path.includes('operator.txt')) {
-      triggerStoryEvent('EVENT_???');
-      unlockCaseFileEntry('case-theory-nature', 'KNOWN');
+    if (node.path && node.path.includes('camera_03.dat')) {
+      triggerStoryFlag('camera03_located');
+      triggerAppInstallation('camera', 'CCTV Camera Feed');
+    }
+
+    if (node.path && node.path.includes('witness_statement_0314')) {
+      triggerStoryFlag('witness_statement_read');
+      unlockCaseFileEntry('case-event-incident07', 'KNOWN');
+    }
+
+    if (node.path && node.path.includes('user07_contact.dat')) {
+      triggerStoryFlag('messages_app_installed');
+      triggerAppInstallation('messages', 'Messages Communication Relay');
     }
 
     if (node.type === 'audio') {
@@ -778,13 +909,10 @@ Look at the task manager.`,
         },
       }));
       triggerStoryEvent('EVENT_019');
-      completeObjective('obj-decrypt-void');
+      triggerStoryFlag('cipher_discovered');
+      triggerStoryFlag('void_partition_decrypted');
       unlockCaseFileEntry('case-loc-voidsector', 'KNOWN');
       unlockCaseFileEntry('case-theory-nature', 'KNOWN');
-      triggerAppInstallation('memory', 'Memory Buffer');
-      triggerAppInstallation('security', 'Security Matrix');
-      triggerAppInstallation('realitycore', 'REALITY CORE');
-      advanceAct(3, 'STAGE_4_REVELATION');
       return true;
     }
     return false;
@@ -796,7 +924,7 @@ Look at the task manager.`,
       sound.stopProceduralTrack();
       sound.stopAmbientHum();
     } catch {}
-    completeObjective('obj-resolve');
+    triggerStoryFlag('ending_resolved');
     setStory(prev => ({
       ...prev,
       activeEnding: ending,
@@ -824,7 +952,12 @@ Look at the task manager.`,
 
       {/* 2. Boot Screen Sequence */}
       {viewMode === 'boot' && (
-        <BootScreen onBootComplete={() => setViewMode('desktop')} />
+        <BootScreen
+          onBootComplete={() => {
+            triggerStoryFlag('boot_completed');
+            setViewMode('desktop');
+          }}
+        />
       )}
 
       {/* 3. In-Universe Application Installer Modal */}
@@ -841,7 +974,27 @@ Look at the task manager.`,
         />
       )}
 
-      {/* 4. Safe Failure Sequence Overlay (03:14 Blackout recovery) */}
+      {/* 4. In-Universe Act Transition Modal */}
+      {pendingActTransition && (
+        <ActTransitionModal
+          completedAct={pendingActTransition.fromAct}
+          nextAct={pendingActTransition.toAct}
+          unlockedPackageName={pendingActTransition.unlockedPackageName}
+          onComplete={handleCompleteActTransition}
+        />
+      )}
+
+      {/* 5. Story Progression Debugger Overlay (F2 or Ctrl+Shift+D) */}
+      {isStoryDebugOpen && (
+        <StoryDebugPanel
+          storyState={story}
+          onClose={() => setIsStoryDebugOpen(false)}
+          onForceAdvanceAct={(actNum) => advanceAct(actNum)}
+          onTriggerFlag={(flag) => triggerStoryFlag(flag)}
+        />
+      )}
+
+      {/* 6. Safe Failure Sequence Overlay (03:14 Blackout recovery) */}
       {isFailingSequence && (
         <div className="fixed inset-0 z-[999999] bg-black text-red-500 font-mono text-sm flex flex-col items-center justify-center p-6 select-none">
           <div className="space-y-3 text-center max-w-md">
@@ -858,7 +1011,7 @@ Look at the task manager.`,
         </div>
       )}
 
-      {/* 5. BSOD Crash Screen */}
+      {/* 7. BSOD Crash Screen */}
       {bsodReason && (
         <BSODScreen
           reason={bsodReason}
@@ -869,7 +1022,7 @@ Look at the task manager.`,
         />
       )}
 
-      {/* 6. Ending Modal */}
+      {/* 8. Ending Modal */}
       {story.activeEnding && (
         <EndingModal
           ending={story.activeEnding}
@@ -878,7 +1031,7 @@ Look at the task manager.`,
         />
       )}
 
-      {/* 7. Main Desktop Workstation Environment */}
+      {/* 9. Main Desktop Workstation Environment */}
       {viewMode === 'desktop' && (
         <div
           onClick={() => {
@@ -908,7 +1061,7 @@ Look at the task manager.`,
             act={story.act}
             anomalyLevel={story.anomalyLevel}
             wallpaperTheme={settings.wallpaper}
-            objectives={story.objectives || []}
+            storyState={story}
             showObjectives={settings.showObjectives}
             onToggleObjectives={() => setSettings(prev => ({ ...prev, showObjectives: !prev.showObjectives }))}
           />
@@ -957,6 +1110,7 @@ Look at the task manager.`,
             role={story.role}
             act={story.act}
             stage={story.stage}
+            storyState={story}
             anomalyLevel={story.anomalyLevel}
             anomalyStability={story.anomalyStability}
             onStabilizePulse={handleStabilizePulse}

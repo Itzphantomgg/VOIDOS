@@ -154,7 +154,7 @@ export const initialStoryState: StoryState = {
   processesKilled: [],
   messagesAnswered: [],
   currentVoidDialogueStep: 0,
-  // Progressive discovery: initial desktop is minimal and focused
+  // Progressive discovery: initial desktop is minimal and focused (Act I)
   unlockedApps: ['files', 'terminal', 'systeminfo', 'casefile', 'trash'],
-  unlockedFolders: ['/Documents', '/Pictures', '/Logs', '/Archive', '/Users/Guest'],
+  unlockedFolders: ['/Documents', '/Pictures', '/Logs', '/Users/Guest'],
 };

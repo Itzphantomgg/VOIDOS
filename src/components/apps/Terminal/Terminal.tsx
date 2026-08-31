@@ -19,6 +19,7 @@ interface TerminalProps {
   playerName: string;
   role: string;
   act: number;
+  triggerStoryFlag?: (flag: string) => void;
 }
 
 export const Terminal: React.FC<TerminalProps> = (props) => {
@@ -90,6 +91,7 @@ export const Terminal: React.FC<TerminalProps> = (props) => {
           playerName: props.playerName,
           role: props.role,
           act: props.act,
+          triggerStoryFlag: props.triggerStoryFlag,
         });
 
         if (outputs.length === 1 && outputs[0] === '__CLEAR__') {

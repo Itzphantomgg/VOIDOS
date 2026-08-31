@@ -1,7 +1,7 @@
 import React from 'react';
 import { OSWindowState, AppId } from '../../types/os';
 import { VFSNode } from '../../types/fs';
-import { GameObjective, KnowledgeLevel, StoryStage } from '../../types/story';
+import { GameObjective, KnowledgeLevel, StoryStage, StoryState } from '../../types/story';
 import { OSWindow } from './OSWindow';
 import { AppErrorBoundary } from '../common/ErrorBoundary';
 import { FileExplorer } from '../apps/FileExplorer/FileExplorer';
@@ -64,6 +64,7 @@ interface WindowManagerProps {
   role: string;
   act: number;
   stage: StoryStage;
+  storyState?: StoryState;
   anomalyLevel: number;
   anomalyStability?: number;
   onStabilizePulse?: () => void;
@@ -72,6 +73,7 @@ interface WindowManagerProps {
   caseFileDiscoveries: Record<string, KnowledgeLevel>;
   objectives: GameObjective[];
   unlockedEvents?: string[];
+  triggerStoryFlag?: (flag: string) => void;
 }
 
 export const WindowManager: React.FC<WindowManagerProps> = ({
@@ -109,6 +111,7 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   role,
   act,
   stage,
+  storyState,
   anomalyLevel,
   anomalyStability = 100,
   onStabilizePulse,
@@ -117,6 +120,7 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   caseFileDiscoveries = {},
   objectives = [],
   unlockedEvents = [],
+  triggerStoryFlag,
 }) => {
   const renderAppContent = (win: OSWindowState) => {
     if (!win) return null;
@@ -125,7 +129,7 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
       case 'objectives':
         return (
           <ObjectivesModal
-            objectives={objectives}
+            storyState={storyState}
             onClose={() => onCloseWindow(win.id)}
           />
         );
@@ -209,6 +213,7 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
             playerName={playerName}
             role={role}
             act={act}
+            triggerStoryFlag={triggerStoryFlag}
           />
         );
 

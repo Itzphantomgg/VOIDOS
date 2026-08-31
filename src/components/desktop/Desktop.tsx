@@ -6,6 +6,8 @@ import { ObjectivesWidget } from './ObjectivesWidget';
 import { sound } from '../../audio/soundEngine';
 import { RefreshCw, Cpu, Terminal, Image, Briefcase, FolderPlus, Target } from 'lucide-react';
 
+import { StoryState } from '../../types/story';
+
 interface DesktopProps {
   icons: DesktopIconItem[];
   selectedIconIds: string[];
@@ -15,7 +17,7 @@ interface DesktopProps {
   act: number;
   anomalyLevel: number;
   wallpaperTheme: string;
-  objectives: GameObjective[];
+  storyState?: StoryState;
   showObjectives: boolean;
   onToggleObjectives: () => void;
 }
@@ -29,7 +31,7 @@ export const Desktop: React.FC<DesktopProps> = ({
   act,
   anomalyLevel,
   wallpaperTheme,
-  objectives,
+  storyState,
   showObjectives,
   onToggleObjectives,
 }) => {
@@ -124,7 +126,7 @@ export const Desktop: React.FC<DesktopProps> = ({
 
       {/* Recovery Objectives Top-Right HUD Widget */}
       <ObjectivesWidget
-        objectives={objectives}
+        storyState={storyState}
         isVisible={showObjectives}
         onOpenFullLog={() => onOpenApp('objectives')}
       />

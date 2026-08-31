@@ -13,6 +13,7 @@ export interface TerminalContext {
   playerName: string;
   role: string;
   act: number;
+  triggerStoryFlag?: (flag: string) => void;
 }
 
 export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): string[] {
@@ -101,6 +102,7 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
         : ctx.cwd;
 
       if (isAll) {
+        ctx.triggerStoryFlag?.('dotfiles_probed');
         ctx.completeObjective('obj-dotfiles');
         ctx.triggerEvent('EVENT_007');
       }
@@ -138,21 +140,35 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       ctx.triggerEvent('EVENT_004');
 
       if (target.includes('recovery_report')) {
-        ctx.completeObjective('obj-report');
+        ctx.triggerStoryFlag?.('recovery_report_read');
         ctx.unlockCaseFileEntry('case-file-recoveryreport');
       }
-      if (target.includes('incident_07')) {
-        ctx.completeObjective('obj-incident');
-        ctx.unlockCaseFileEntry('case-file-incident07');
-        ctx.unlockCaseFileEntry('case-event-incident07');
-        ctx.advanceAct(2);
+      if (target.includes('config.dat')) {
+        ctx.triggerStoryFlag?.('credentials_recovered');
       }
-      if (target.includes('project_void') || target.includes('DECRYPT_KEY_VAULT')) {
-        ctx.unlockCaseFileEntry('case-proj-void');
-        ctx.unlockCaseFileEntry('case-pass-nullrecursion');
+      if (target.includes('operator_07') || target.includes('operator.txt')) {
+        ctx.triggerStoryFlag?.('user07_identified');
+        ctx.triggerStoryFlag?.('timestamp_0314_found');
+        ctx.unlockCaseFileEntry('case-person-user07');
       }
-      if (target.includes('operator.txt')) {
-        ctx.triggerEvent('EVENT_???');
+      if (target.includes('system_0314.log')) {
+        ctx.triggerStoryFlag?.('system_log_0314_viewed');
+        ctx.triggerStoryFlag?.('timestamp_0314_found');
+      }
+      if (target.includes('corrupted_buffer.dat')) {
+        ctx.triggerStoryFlag?.('log_line_recovered');
+      }
+      if (target.includes('recovered_entry.txt')) {
+        ctx.triggerStoryFlag?.('recovered_line_read');
+      }
+      if (target.includes('marcus_record')) {
+        ctx.triggerStoryFlag?.('marcus_record_read');
+      }
+      if (target.includes('marcus_journal')) {
+        ctx.triggerStoryFlag?.('marcus_journal_read');
+      }
+      if (target.includes('security_report')) {
+        ctx.triggerStoryFlag?.('security_report_read');
       }
 
       if (node.content) {
@@ -162,6 +178,7 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
     }
 
     case 'whoami': {
+      ctx.triggerStoryFlag?.('clearance_checked');
       if (ctx.act === 1) {
         return [
           'USER: RECOVERY_OPERATOR (UNIT 04)',
@@ -242,6 +259,7 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
 
     case 'scan': {
       ctx.triggerEvent('EVENT_007');
+      ctx.triggerStoryFlag?.('security_telemetry_compared');
       ctx.setAnomalyLevel(prev => Math.min(100, prev + 10));
       return [
         'INITIATING HARDWARE & MEMORY MATRIX SCAN...',
@@ -260,10 +278,10 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (input === 'NULL_RECURSION' || input === '/VOID' || input.includes('NULL_RECURSION')) {
         ctx.unlockVoidDir();
         ctx.triggerEvent('EVENT_019');
-        ctx.completeObjective('obj-decrypt-void');
+        ctx.triggerStoryFlag?.('cipher_discovered');
+        ctx.triggerStoryFlag?.('void_partition_decrypted');
         ctx.unlockCaseFileEntry('case-loc-voidsector');
         ctx.unlockCaseFileEntry('case-pass-nullrecursion');
-        ctx.advanceAct(3);
         return [
           'CRYPTOGRAPHIC KEY ACCEPTED: NULL_RECURSION',
           'DECRYPTING SECTOR /VOID...',
@@ -282,8 +300,8 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (key === 'NULL_RECURSION') {
         ctx.unlockVoidDir();
         ctx.triggerEvent('EVENT_019');
-        ctx.completeObjective('obj-decrypt-void');
-        ctx.advanceAct(3);
+        ctx.triggerStoryFlag?.('cipher_discovered');
+        ctx.triggerStoryFlag?.('void_partition_decrypted');
         return [
           'SECURITY OVERRIDE AUTHORIZED: NULL_RECURSION',
           'SECTOR /VOID UNLOCKED.',
