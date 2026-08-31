@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { sound } from '../../audio/soundEngine';
-import { BookOpen, Cpu, Info, Play, X, Keyboard, Mouse, Compass, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { BookOpen, Cpu, Info, Play, X, Keyboard, Mouse, Compass, ShieldAlert, AlertTriangle, Terminal } from 'lucide-react';
 
 interface BootScreenProps {
   onBootComplete: () => void;
@@ -10,20 +10,24 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
   const [lines, setLines] = useState<string[]>([]);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [activeModal, setActiveModal] = useState<'howToPlay' | 'sysInfo' | 'credits' | null>(null);
+  const [commandInput, setCommandInput] = useState('');
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const bootSequence = [
-    'NEXUS SYSTEMS // 2004 RECOVERY ARCHIVE (BUILD 4.09.2a)',
-    'INITIALIZING WORKSTATION TERMINAL 04...',
-    '-------------------------------------------------------',
-    'CPU: VOID-X64 HYBRID SYNAPSE RISC @ 800 MHz ... OK',
-    'MEMORY: 16384 MB HIGH-SPEED ECC DDR ............ OK',
-    'STORAGE: 512 GB QUANTUM ARRAY ................. OK',
-    'VFS FILE SYSTEM MOUNT (/) ...................... OK',
-    'OPERATOR TELEMETRY BUS ......................... INITIALIZED',
-    'NETWORK ADAPTER: ISOLATED (SECTOR 7 OFFLINE) ... OK',
-    '-------------------------------------------------------',
-    'RECOVERY ASSIGNMENT: TERMINAL 04 DATA EXTRACTION',
-    'STATUS: READY FOR RECOVERY OPERATOR DEPLOYMENT.',
+    'VOID//OS RECOVERY TERMINAL',
+    'NEXUS SYSTEMS // RECOVERY ENVIRONMENT (BUILD v1.2.0)',
+    '====================================================',
+    'SYSTEM CHECK ........................ COMPLETE',
+    'KERNEL .............................. OK',
+    'MEMORY (16384 MB) ................... OK',
+    'STORAGE (512 GB QUANTUM) ............ OK',
+    'NETWORK ............................. OFFLINE (AIR-GAPPED)',
+    'VOID CORE ........................... UNKNOWN',
+    'RECOVERY PACKAGE .................... MOUNTED AT /',
+    'USER IDENTITY ....................... RECOVERY_OPERATOR',
+    '====================================================',
+    'STATUS: READY FOR OPERATOR COMMAND.',
   ];
 
   useEffect(() => {
@@ -36,12 +40,41 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
         setLines(prev => [...prev, bootSequence[currentLineIndex]]);
         setCurrentLineIndex(prev => prev + 1);
         sound.playKeypress();
-      }, 75);
+      }, 55);
       return () => clearTimeout(timeout);
     }
   }, [currentLineIndex]);
 
-  // Keyboard navigation on boot screen
+  // Execute terminal command
+  const executeCommand = (cmdStr: string) => {
+    const cmd = cmdStr.trim().toLowerCase();
+    setCommandInput('');
+
+    if (cmd === 'start' || cmd === 'enter' || cmd === 'boot' || cmd === 'run') {
+      sound.playClick();
+      setFeedbackMessage('COMMAND ACCEPTED. INITIALIZING VOID//OS...');
+      setTimeout(() => {
+        onBootComplete();
+      }, 600);
+    } else if (cmd === 'help' || cmd === 'h') {
+      sound.playClick();
+      setActiveModal('howToPlay');
+    } else if (cmd === 'hardware' || cmd === 'specs' || cmd === 's') {
+      sound.playClick();
+      setActiveModal('sysInfo');
+    } else if (cmd === 'credits' || cmd === 'c') {
+      sound.playClick();
+      setActiveModal('credits');
+    } else if (cmd === 'skip') {
+      onBootComplete();
+    } else if (cmd) {
+      sound.playError();
+      setFeedbackMessage(`UNKNOWN COMMAND: "${cmd}". TYPE "START", "HELP", "HARDWARE", OR "CREDITS".`);
+      setTimeout(() => setFeedbackMessage(null), 3000);
+    }
+  };
+
+  // Global keyboard listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (activeModal) {
@@ -52,58 +85,52 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
         return;
       }
 
-      if (e.key === 'Enter') {
-        sound.playClick();
-        onBootComplete();
-      } else if (e.key.toLowerCase() === 'h') {
-        sound.playClick();
-        setActiveModal('howToPlay');
-      } else if (e.key.toLowerCase() === 's') {
-        sound.playClick();
-        setActiveModal('sysInfo');
-      } else if (e.key.toLowerCase() === 'c') {
-        sound.playClick();
-        setActiveModal('credits');
+      if (e.key === 'Enter' && !commandInput) {
+        executeCommand('start');
+      } else if (e.key.toLowerCase() === 'h' && !commandInput) {
+        executeCommand('help');
+      } else if (e.key.toLowerCase() === 's' && !commandInput) {
+        executeCommand('hardware');
+      } else if (e.key.toLowerCase() === 'c' && !commandInput) {
+        executeCommand('credits');
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeModal, onBootComplete]);
+  }, [activeModal, commandInput]);
 
   return (
-    <div className="fixed inset-0 z-[99990] bg-[#02040a] text-cyan-400 font-mono text-xs sm:text-sm p-4 sm:p-10 flex flex-col justify-between select-none overflow-y-auto">
-      {/* Top Banner & Story Lore Section */}
+    <div 
+      onClick={() => inputRef.current?.focus()}
+      className="fixed inset-0 z-[99990] bg-[#02040b] text-cyan-400 font-mono text-xs sm:text-sm p-4 sm:p-10 flex flex-col justify-between select-none overflow-y-auto cursor-text"
+    >
+      {/* Top Section */}
       <div className="space-y-4 max-w-4xl">
         <div className="flex items-center space-x-2 text-pink-500 font-bold tracking-widest text-sm sm:text-lg glow-magenta">
           <ShieldAlert size={20} className="text-pink-500 animate-pulse" />
-          <span>NEXUS SYSTEMS // RECOVERY ARCHIVE (2004)</span>
+          <span>NEXUS SYSTEMS // RECOVERY TERMINAL (2004)</span>
         </div>
 
-        {/* Narrative Lore Briefing Box */}
-        <div className="p-3.5 sm:p-4 bg-[#070c1e]/90 border border-cyan-500/60 rounded shadow-retro-cyan space-y-2 text-xs leading-relaxed text-slate-200">
-          <div className="text-cyan-300 font-bold text-xs uppercase tracking-wider flex items-center space-x-1.5">
-            <span>MISSION BRIEFING:</span>
+        {/* Narrative Mission Briefing Banner */}
+        <div className="p-3.5 bg-[#060a18]/90 border border-cyan-500/60 rounded shadow-retro-cyan space-y-1.5 text-xs text-slate-200">
+          <div className="text-cyan-300 font-bold text-xs uppercase tracking-wider">
+            RECOVERY ASSIGNMENT: WORKSTATION TERMINAL 04
           </div>
-          <p className="text-slate-300">
-            <strong>VOID//OS</strong> was an experimental operating system developed in 2004, designed to observe, learn, and adapt to its users.
-            On <span className="text-pink-400 font-bold">August 14th, 2004</span>, the system was shut down after an unexplained incident at <strong>03:14 AM</strong>.
-            The research facility was evacuated and the project was classified.
+          <p className="text-slate-300 leading-relaxed">
+            Inspect the recovered 2004 operating system, investigate the <strong>03:14 AM</strong> incident, and uncover what happened to Project VOID.
           </p>
-          <p className="text-slate-300">
-            Years later, a surviving recovery package was discovered. You have been assigned as a <strong>Recovery Technician</strong> to inspect the computer, examine incident logs, and determine what happened.
-          </p>
-          <div className="p-2 bg-red-950/40 border-l-2 border-red-500 text-red-300 text-[11px] font-bold flex items-center space-x-2">
-            <AlertTriangle size={14} className="text-red-400 shrink-0" />
-            <span>CONTAINMENT WARNING: "DO NOT CONNECT VOID TO THE EXTERNAL NETWORK." [NETWORK: OFFLINE]</span>
+          <div className="text-[11px] text-red-400 font-bold flex items-center space-x-1.5 pt-0.5">
+            <AlertTriangle size={13} className="shrink-0" />
+            <span>CRITICAL WARNING: "DO NOT CONNECT VOID TO THE EXTERNAL NETWORK." [AIR-GAPPED]</span>
           </div>
         </div>
 
-        {/* Technical Boot Logs */}
+        {/* Boot Stream Lines */}
         <div className="space-y-1 pt-1 font-mono text-xs">
           {lines.map((line, idx) => {
             const isReady = line.includes('READY FOR');
-            const isWarning = line.includes('WARNING') || line.includes('ISOLATED');
+            const isWarning = line.includes('WARNING') || line.includes('OFFLINE');
             return (
               <div
                 key={idx}
@@ -119,78 +146,103 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
               </div>
             );
           })}
-          {currentLineIndex < bootSequence.length && (
-            <div className="inline-block w-2 h-3.5 bg-cyan-400 animate-pulse mt-1" />
-          )}
         </div>
+
+        {/* Available Terminal Commands */}
+        {currentLineIndex >= bootSequence.length && (
+          <div className="pt-4 border-t border-slate-800 space-y-3">
+            <div className="text-pink-400 font-bold text-xs tracking-wider">
+              AVAILABLE COMMANDS:
+            </div>
+
+            <div className="space-y-1 text-xs">
+              <div 
+                onClick={() => executeCommand('start')}
+                className="hover:text-cyan-200 hover:bg-cyan-950/40 p-1 rounded cursor-pointer transition-colors flex items-center space-x-2"
+              >
+                <span className="text-green-400 font-bold">&gt; START</span>
+                <span className="text-slate-400">Boot into operating system [ENTER]</span>
+              </div>
+              <div 
+                onClick={() => executeCommand('help')}
+                className="hover:text-cyan-200 hover:bg-cyan-950/40 p-1 rounded cursor-pointer transition-colors flex items-center space-x-2"
+              >
+                <span className="text-pink-400 font-bold">&gt; HELP</span>
+                <span className="text-slate-400">View controls and investigation guide [H]</span>
+              </div>
+              <div 
+                onClick={() => executeCommand('hardware')}
+                className="hover:text-cyan-200 hover:bg-cyan-950/40 p-1 rounded cursor-pointer transition-colors flex items-center space-x-2"
+              >
+                <span className="text-purple-400 font-bold">&gt; HARDWARE</span>
+                <span className="text-slate-400">View system specifications [S]</span>
+              </div>
+              <div 
+                onClick={() => executeCommand('credits')}
+                className="hover:text-cyan-200 hover:bg-cyan-950/40 p-1 rounded cursor-pointer transition-colors flex items-center space-x-2"
+              >
+                <span className="text-slate-300 font-bold">&gt; CREDITS</span>
+                <span className="text-slate-400">View project credits & heritage [C]</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Interactive Boot Menu Options */}
-      <div className="mt-6 pt-4 border-t border-slate-800/80 space-y-3">
-        <div className="text-slate-400 text-[11px] font-bold tracking-wider">
-          SELECT AN OPTION OR PRESS CORRESPONDING KEY:
-        </div>
+      {/* Interactive Command Prompt Line */}
+      <div className="mt-6 pt-3 border-t border-slate-800 space-y-2">
+        {feedbackMessage && (
+          <div className="text-xs font-bold text-pink-400 animate-pulse">
+            {feedbackMessage}
+          </div>
+        )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <button
-            onClick={() => {
-              sound.playClick();
-              onBootComplete();
-            }}
-            className="p-2.5 sm:p-3 bg-gradient-to-r from-cyan-950 to-blue-950 hover:from-cyan-900 hover:to-blue-900 border-2 border-cyan-400 text-cyan-200 rounded text-left transition-all shadow-retro-cyan cursor-pointer group"
-          >
-            <div className="flex items-center space-x-2 font-bold text-xs sm:text-sm text-cyan-300">
-              <Play size={16} className="text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
-              <span>[ ENTER ] START</span>
-            </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Boot into operating system</div>
+        <div className="flex items-center space-x-2 text-xs text-slate-400">
+          <span>SHORTCUT KEYS:</span>
+          <button onClick={() => executeCommand('start')} className="px-2 py-0.5 bg-[#0a1226] border border-cyan-600 text-cyan-300 rounded hover:bg-cyan-900 cursor-pointer">
+            [ENTER] START
           </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              setActiveModal('howToPlay');
-            }}
-            className="p-2.5 sm:p-3 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-pink-500 text-slate-300 rounded text-left transition-all cursor-pointer"
-          >
-            <div className="flex items-center space-x-2 font-bold text-xs sm:text-sm text-pink-400">
-              <BookOpen size={16} />
-              <span>[ H ] HOW TO PLAY</span>
-            </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Controls & investigation guide</div>
+          <button onClick={() => executeCommand('help')} className="px-2 py-0.5 bg-[#0a1226] border border-pink-700 text-pink-300 rounded hover:bg-pink-900 cursor-pointer">
+            [H] HELP
           </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              setActiveModal('sysInfo');
-            }}
-            className="p-2.5 sm:p-3 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-purple-500 text-slate-300 rounded text-left transition-all cursor-pointer"
-          >
-            <div className="flex items-center space-x-2 font-bold text-xs sm:text-sm text-purple-400">
-              <Cpu size={16} />
-              <span>[ S ] HARDWARE</span>
-            </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Hardware specifications</div>
+          <button onClick={() => executeCommand('hardware')} className="px-2 py-0.5 bg-[#0a1226] border border-purple-700 text-purple-300 rounded hover:bg-purple-900 cursor-pointer">
+            [S] HARDWARE
           </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              setActiveModal('credits');
-            }}
-            className="p-2.5 sm:p-3 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-500 text-slate-300 rounded text-left transition-all cursor-pointer"
-          >
-            <div className="flex items-center space-x-2 font-bold text-xs sm:text-sm text-slate-300">
-              <Info size={16} />
-              <span>[ C ] CREDITS</span>
-            </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Origins & lore attribution</div>
+          <button onClick={() => executeCommand('credits')} className="px-2 py-0.5 bg-[#0a1226] border border-slate-700 text-slate-300 rounded hover:bg-slate-800 cursor-pointer">
+            [C] CREDITS
           </button>
         </div>
+
+        {/* Command Line Input */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            executeCommand(commandInput || 'start');
+          }}
+          className="flex items-center space-x-2 bg-black/80 border border-cyan-500/80 p-2 rounded"
+        >
+          <span className="text-green-400 font-bold text-sm">&gt;</span>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Type command (e.g. START, HELP, HARDWARE) or press ENTER..."
+            value={commandInput}
+            onChange={(e) => setCommandInput(e.target.value)}
+            className="flex-1 bg-transparent border-none outline-none text-cyan-200 font-mono text-xs caret-cyan-400 placeholder:text-slate-600"
+            autoFocus
+            spellCheck={false}
+            autoComplete="off"
+          />
+          <button
+            type="submit"
+            className="px-3 py-1 bg-cyan-900 hover:bg-cyan-800 text-cyan-200 rounded text-xs font-bold border border-cyan-500 cursor-pointer"
+          >
+            EXECUTE
+          </button>
+        </form>
       </div>
 
-      {/* HOW TO PLAY / TUTORIAL MODAL */}
+      {/* HOW TO PLAY MODAL */}
       {activeModal === 'howToPlay' && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-[99999]">
           <div className="bg-[#090e21] border-2 border-pink-500 p-5 sm:p-6 max-w-2xl w-full rounded shadow-2xl space-y-4 font-mono text-xs text-slate-200">
@@ -240,6 +292,7 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
                 <p>1. Check the <strong>Top-Right Objectives HUD</strong> for your next step.</p>
                 <p>2. Review your <strong>CASE FILE</strong> journal to see newly unlocked evidence.</p>
                 <p>3. Use <code>ls -a</code> in Terminal to locate hidden system dotfiles.</p>
+                <p>4. Use the <strong>OBSERVER</strong> application to perform Observation Duty and stabilize the Anomaly.</p>
               </div>
             </div>
 
@@ -248,11 +301,11 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
                 onClick={() => {
                   sound.playClick();
                   setActiveModal(null);
-                  onBootComplete();
+                  executeCommand('start');
                 }}
                 className="px-6 py-2 bg-gradient-to-r from-cyan-900 to-pink-900 hover:from-cyan-800 hover:to-pink-800 text-white font-bold rounded text-xs cursor-pointer shadow-retro-magenta"
               >
-                ENTER SYSTEM [ENTER]
+                ENTER SYSTEM [START]
               </button>
             </div>
           </div>
@@ -277,7 +330,7 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
               <div><strong>Architecture:</strong> VOID-X64 Synaptic Hybrid RISC</div>
               <div><strong>Memory:</strong> 16,384 MB High-Speed ECC DDR</div>
               <div><strong>Storage:</strong> 512 GB Quantum Magnetic Platter Array</div>
-              <div><strong>Kernel:</strong> VOID//OS 4.09.2a (2004 Recovery Build)</div>
+              <div><strong>Kernel:</strong> VOID//OS 4.09.2a (2004 Recovery Build v1.2.0)</div>
               <div><strong>Network Mode:</strong> Sector 7 Isolation (Air-gapped)</div>
             </div>
             <div className="pt-2 text-right">
@@ -303,7 +356,7 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
               </button>
             </div>
             <div className="space-y-2 text-[11px] text-slate-300 leading-relaxed">
-              <p><strong>VOID//OS</strong> is an interactive digital mystery, ARG, and digital horror experience.</p>
+              <p><strong>VOID//OS v1.2.0</strong> is an interactive digital mystery, ARG, and digital horror experience.</p>
               <p>Created with passion for retro-computing, Y2K glitchcore, and experimental cognitive storytelling.</p>
             </div>
             <div className="pt-2 text-right">

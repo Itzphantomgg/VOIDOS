@@ -61,6 +61,10 @@ interface WindowManagerProps {
   act: number;
   stage: StoryStage;
   anomalyLevel: number;
+  anomalyStability?: number;
+  onStabilizePulse?: () => void;
+  onRunDiagnosticSweep?: () => void;
+  onVerifyIntegrity?: () => void;
   caseFileDiscoveries: Record<string, KnowledgeLevel>;
   objectives: GameObjective[];
 }
@@ -101,23 +105,22 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
   act,
   stage,
   anomalyLevel,
+  anomalyStability = 100,
+  onStabilizePulse,
+  onRunDiagnosticSweep,
+  onVerifyIntegrity,
   caseFileDiscoveries = {},
   objectives = [],
 }) => {
   const renderAppContent = (win: OSWindowState) => {
+    if (!win) return null;
+
     switch (win.appId) {
-      case 'files':
+      case 'objectives':
         return (
-          <FileExplorer
-            vfs={vfs}
-            currentPath={win.customData?.path || currentVfsPath}
-            onNavigate={onNavigateVfs}
-            onOpenFile={onOpenVfsFile}
-            onCreateFile={onCreateVfsFile}
-            onCreateFolder={onCreateVfsFolder}
-            onDeleteFile={onDeleteVfsFile}
-            onUnlockVoid={onUnlockVoid}
-            act={act}
+          <ObjectivesModal
+            objectives={objectives}
+            onClose={() => onCloseWindow(win.id)}
           />
         );
 
@@ -130,11 +133,18 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
           />
         );
 
-      case 'objectives':
+      case 'files':
         return (
-          <ObjectivesModal
-            objectives={objectives}
-            onClose={() => onCloseWindow(win.id)}
+          <FileExplorer
+            vfs={vfs}
+            currentPath={currentVfsPath}
+            onNavigate={onNavigateVfs}
+            onOpenFile={onOpenVfsFile}
+            onCreateFile={onCreateVfsFile}
+            onCreateFolder={onCreateVfsFolder}
+            onDeleteFile={onDeleteVfsFile}
+            onUnlockVoid={onUnlockVoid}
+            act={act}
           />
         );
 
@@ -145,7 +155,14 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
         return <MemoryApp />;
 
       case 'observer':
-        return <ObserverApp />;
+        return (
+          <ObserverApp
+            stability={anomalyStability}
+            onStabilizePulse={onStabilizePulse}
+            onRunDiagnosticSweep={onRunDiagnosticSweep}
+            onVerifyIntegrity={onVerifyIntegrity}
+          />
+        );
 
       case 'textviewer':
       case 'imageviewer':
@@ -280,7 +297,7 @@ export const WindowManager: React.FC<WindowManagerProps> = ({
             onUpdatePosition={(x, y) => onUpdatePosition(win.id, x, y)}
             onUpdateSize={(w, h) => onUpdateSize(win.id, w, h)}
           >
-            <AppErrorBoundary appName={win.title} onClose={() => onCloseWindow(win.id)}>
+            <AppErrorBoundary appName={win.title || win.appId} onClose={() => onCloseWindow(win.id)}>
               {renderAppContent(win)}
             </AppErrorBoundary>
           </OSWindow>

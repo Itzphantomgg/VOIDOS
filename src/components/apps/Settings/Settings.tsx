@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { OSSettings, ThemeName } from '../../../types/os';
 import { sound } from '../../../audio/soundEngine';
-import { Palette, Monitor, Volume2, Shield, Eye, RotateCcw, AlertTriangle, X } from 'lucide-react';
+import { Palette, Monitor, Volume2, Shield, Eye, RotateCcw, AlertTriangle, Cpu, Info, CheckCircle2 } from 'lucide-react';
 
 interface SettingsProps {
   settings: OSSettings;
@@ -28,6 +28,28 @@ export const Settings: React.FC<SettingsProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#070b1a] text-slate-200 font-mono text-xs select-none p-4 overflow-y-auto space-y-6 relative">
+      {/* SYSTEM INFORMATION / BUILD VERSION HEADER */}
+      <div className="p-3.5 bg-[#090e24] border-2 border-cyan-500/70 rounded space-y-2 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-cyan-800 pb-2">
+          <div className="flex items-center space-x-2 text-cyan-300 font-bold text-sm">
+            <Cpu size={16} className="text-cyan-400" />
+            <span>SYSTEM INFORMATION // ABOUT SYSTEM</span>
+          </div>
+          <span className="px-2 py-0.5 bg-pink-950 border border-pink-700 text-pink-300 font-bold text-[10px] rounded">
+            STABLE
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+          <div><strong>SYSTEM:</strong> VOID//OS</div>
+          <div><strong>BUILD:</strong> <span className="text-pink-400 font-bold">v1.2.0</span></div>
+          <div><strong>ENVIRONMENT:</strong> Browser WebEngine</div>
+          <div><strong>MODE:</strong> Interactive Recovery Workstation</div>
+          <div><strong>CLEARANCE:</strong> LEVEL 4 RESTRICTED</div>
+          <div><strong>KERNEL:</strong> SH-4.09.2a (2004 Recovery)</div>
+        </div>
+      </div>
+
       {/* Visual Themes */}
       <div className="space-y-2 border-b border-slate-800 pb-4">
         <div className="flex items-center space-x-2 text-cyan-400 font-bold text-sm">

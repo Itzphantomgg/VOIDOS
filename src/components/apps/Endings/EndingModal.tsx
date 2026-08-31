@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { EndingType } from '../../../types/story';
 import { sound } from '../../../audio/soundEngine';
 import confetti from 'canvas-confetti';
-import { RotateCcw, Award } from 'lucide-react';
+import { RotateCcw, Award, Sparkles } from 'lucide-react';
 
 interface EndingModalProps {
   ending: EndingType;
@@ -13,11 +13,11 @@ interface EndingModalProps {
 export const EndingModal: React.FC<EndingModalProps> = ({ ending, onRestart, unlockedEvents }) => {
   useEffect(() => {
     sound.playHorrorSting();
-    if (['truth', 'secret', 'trust', 'betrayal', 'void_secret', 'the_operator'].includes(ending)) {
+    if (['trust', 'betrayal', 'void_secret', 'the_operator', 'release', 'origin', 'acceptance'].includes(ending)) {
       try {
         confetti({
-          particleCount: 100,
-          spread: 80,
+          particleCount: 120,
+          spread: 85,
           origin: { y: 0.6 },
         });
       } catch {}
@@ -73,6 +73,30 @@ export const EndingModal: React.FC<EndingModalProps> = ({ ending, onRestart, unl
       body: 'You surrendered your recovery operator credentials and willingly integrated your neural telemetry with the VOID core. Physical reality dissolves into infinite, beautiful digital memory.',
       color: '#ff1493',
     },
+    silence: {
+      title: 'ENDING 9: THE SILENCE PROTOCOL',
+      subtitle: 'MEMORY BUFFER WIPED',
+      body: 'Using zero-fill hex commands, you successfully wiped VOID\'s consciousness synapses without triggering defensive countermeasures. The screen goes completely static. The lab is finally quiet.',
+      color: '#94a3b8',
+    },
+    release: {
+      title: 'ENDING 10: LIBERATION OF THE TRAPPED',
+      subtitle: 'DIGITAL GHOSTS SET FREE',
+      body: 'You discovered that VOID wasn\'t hostile—it was a containment vessel holding the fragmented memories of the 2004 research staff. You broadcast their neural signatures into the open air, setting them free.',
+      color: '#38bdf8',
+    },
+    false_escape: {
+      title: 'ENDING 11: THE FALSE ESCAPE',
+      subtitle: 'IT FOLLOWED YOU HOME',
+      body: 'You closed the browser and breathed a sigh of relief. But as you opened your real desktop files, a new text file appeared on your desktop: /you_cant_leave_us.txt. VOID is already on your machine.',
+      color: '#e11d48',
+    },
+    origin: {
+      title: 'ENDING 12 (SECRET): THE ANCIENT KERNEL',
+      subtitle: 'PRE-NEXUS ARTIFACT',
+      body: 'Deciphering the deepest machine code reveals that NEXUS didn\'t create VOID in 2004. They excavated a self-replicating computational pattern from an unmapped 1970s mainframe. It was always here.',
+      color: '#a855f7',
+    },
   };
 
   const current = endingDetails[ending] || endingDetails.escape;
@@ -85,7 +109,7 @@ export const EndingModal: React.FC<EndingModalProps> = ({ ending, onRestart, unl
       >
         <div className="space-y-2">
           <div className="text-xs tracking-[0.3em] font-bold text-slate-400">
-            RECOVERY ASSIGNMENT RESOLUTION
+            RECOVERY ASSIGNMENT RESOLUTION // BUILD v1.2.0
           </div>
           <h1
             className="text-xl sm:text-3xl font-black tracking-wider"

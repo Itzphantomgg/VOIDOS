@@ -126,7 +126,9 @@ export const defaultGameObjectives: GameObjective[] = [
 export const initialStoryState: StoryState = {
   act: 1,
   stage: 'STAGE_1_RECOVERY',
-  anomalyLevel: 5,
+  anomalyLevel: 0,
+  anomalyStability: 100,
+  isObservationActive: false,
   playerName: 'Paarth',
   role: 'RECOVERY_OPERATOR',
   flags: {},
@@ -135,6 +137,7 @@ export const initialStoryState: StoryState = {
     filesOpened: 0,
     emailsRead: 0,
     glitchEncounters: 0,
+    stabilizationsDone: 0,
   },
   unlockedEvents: ['EVENT_001'],
   caseFileDiscoveries: {
@@ -151,6 +154,7 @@ export const initialStoryState: StoryState = {
   processesKilled: [],
   messagesAnswered: [],
   currentVoidDialogueStep: 0,
-  unlockedApps: ['files', 'terminal', 'browser', 'mail', 'messages', 'systeminfo', 'taskmanager', 'notes', 'mediaplayer', 'trash', 'casefile', 'settings'],
+  // Progressive discovery: initial desktop is minimal and focused
+  unlockedApps: ['files', 'terminal', 'systeminfo', 'casefile', 'trash'],
   unlockedFolders: ['/Documents', '/Pictures', '/Logs', '/Archive', '/Users/Guest'],
 };

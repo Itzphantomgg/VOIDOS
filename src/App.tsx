@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AppId, 
   OSWindowState, 
@@ -15,6 +15,7 @@ import { sound } from './audio/soundEngine';
 
 // Components & Error Boundaries
 import { RootErrorBoundary } from './components/common/ErrorBoundary';
+import { LandingPage } from './components/landing/LandingPage';
 import { BootScreen } from './components/boot/BootScreen';
 import { BSODScreen } from './components/boot/BSODScreen';
 import { Desktop } from './components/desktop/Desktop';
@@ -25,14 +26,18 @@ import { NotificationContainer } from './components/notifications/NotificationCo
 import { CRTOverlay } from './components/effects/CRTOverlay';
 import { GlitchLayer } from './components/effects/GlitchLayer';
 import { EndingModal } from './components/apps/Endings/EndingModal';
+import { Maximize2, Minimize2 } from 'lucide-react';
 
 export const AppContent: React.FC = () => {
-  // --- Persistent & Core States ---
-  const [isBooted, setIsBooted] = useState<boolean>(false);
+  // --- View Modes: Landing Page -> Boot Terminal -> Desktop OS ---
+  const [viewMode, setViewMode] = useState<'landing' | 'boot' | 'desktop'>('landing');
   const [bsodReason, setBsodReason] = useState<string | null>(null);
   const [glitchClockTime, setGlitchClockTime] = useState<string | null>(null);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isFailingSequence, setIsFailingSequence] = useState<boolean>(false);
 
-  // Settings (customCursor is kept false to ensure single native browser cursor)
+  // Settings
   const [settings, setSettings] = useState<OSSettings>({
     theme: 'void-cyan',
     wallpaper: 'void-grid',
@@ -63,25 +68,26 @@ export const AppContent: React.FC = () => {
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
   const [nextZIndex, setNextZIndex] = useState<number>(100);
 
-  // Desktop Icons
-  const [desktopIcons, setDesktopIcons] = useState<DesktopIconItem[]>([
+  // Master Desktop Icons Definition
+  const masterDesktopIcons: DesktopIconItem[] = [
     { id: 'icon-casefile', appId: 'casefile', title: 'Case File', icon: 'Briefcase', x: 20, y: 20 },
     { id: 'icon-files', appId: 'files', title: 'Files', icon: 'Folder', x: 20, y: 100 },
     { id: 'icon-terminal', appId: 'terminal', title: 'Terminal', icon: 'Terminal', x: 20, y: 180 },
-    { id: 'icon-browser', appId: 'browser', title: 'Browser', icon: 'Globe', x: 20, y: 260 },
-    { id: 'icon-messages', appId: 'messages', title: 'Messages', icon: 'MessageSquare', x: 20, y: 340 },
-    { id: 'icon-mail', appId: 'mail', title: 'Mail', icon: 'Mail', x: 20, y: 420 },
-    { id: 'icon-taskmanager', appId: 'taskmanager', title: 'Task Manager', icon: 'Activity', x: 100, y: 20 },
-    { id: 'icon-camera', appId: 'camera', title: 'Camera', icon: 'Camera', x: 100, y: 100, hidden: true },
-    { id: 'icon-memory', appId: 'memory', title: 'Memory', icon: 'Layers', x: 100, y: 180, hidden: true },
-    { id: 'icon-observer', appId: 'observer', title: 'Observer', icon: 'Eye', x: 100, y: 260, hidden: true },
-    { id: 'icon-notes', appId: 'notes', title: 'Notes', icon: 'FileText', x: 100, y: 340 },
-    { id: 'icon-media', appId: 'mediaplayer', title: 'Media', icon: 'Music', x: 100, y: 420 },
-    { id: 'icon-sysinfo', appId: 'systeminfo', title: 'System', icon: 'Cpu', x: 180, y: 20 },
-    { id: 'icon-settings', appId: 'settings', title: 'Settings', icon: 'Settings', x: 180, y: 100 },
-    { id: 'icon-trash', appId: 'trash', title: 'Trash', icon: 'Trash2', x: 180, y: 180 },
-    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 180, y: 260, hidden: true },
-  ]);
+    { id: 'icon-sysinfo', appId: 'systeminfo', title: 'System', icon: 'Cpu', x: 20, y: 260 },
+    { id: 'icon-trash', appId: 'trash', title: 'Trash', icon: 'Trash2', x: 20, y: 340 },
+    // Progressive Discovery Unlocks:
+    { id: 'icon-mail', appId: 'mail', title: 'Mail', icon: 'Mail', x: 100, y: 20 },
+    { id: 'icon-browser', appId: 'browser', title: 'Browser', icon: 'Globe', x: 100, y: 100 },
+    { id: 'icon-messages', appId: 'messages', title: 'Messages', icon: 'MessageSquare', x: 100, y: 180 },
+    { id: 'icon-notes', appId: 'notes', title: 'Notes', icon: 'FileText', x: 100, y: 260 },
+    { id: 'icon-media', appId: 'mediaplayer', title: 'Media', icon: 'Music', x: 100, y: 340 },
+    { id: 'icon-camera', appId: 'camera', title: 'CCTV Camera', icon: 'Camera', x: 180, y: 20 },
+    { id: 'icon-taskmanager', appId: 'taskmanager', title: 'Task Manager', icon: 'Activity', x: 180, y: 100 },
+    { id: 'icon-observer', appId: 'observer', title: 'Observer', icon: 'Eye', x: 180, y: 180 },
+    { id: 'icon-memory', appId: 'memory', title: 'Memory', icon: 'Layers', x: 180, y: 260 },
+    { id: 'icon-settings', appId: 'settings', title: 'Settings', icon: 'Settings', x: 180, y: 340 },
+    { id: 'icon-reality', appId: 'realitycore', title: 'REALITY', icon: 'Eye', x: 260, y: 20 },
+  ];
 
   const [selectedIconIds, setSelectedIconIds] = useState<string[]>([]);
   const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
@@ -111,24 +117,81 @@ export const AppContent: React.FC = () => {
 
   // Save state on changes
   useEffect(() => {
-    if (isBooted) {
+    if (viewMode === 'desktop') {
       saveGameState({ story, vfs, settings });
     }
-  }, [story, vfs, settings, isBooted]);
+  }, [story, vfs, settings, viewMode]);
+
+  // Listen to browser Fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    try {
+      sound.playClick();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch {}
+  };
 
   // --- Clock Glitch Trigger (Temporarily displays 03:14:29) ---
-  const triggerClockGlitch = () => {
+  const triggerClockGlitch = useCallback(() => {
     try {
       sound.playGlitch();
     } catch {}
     setGlitchClockTime('03:14:29');
+    setFlashMessage('03:14');
     setTimeout(() => {
       setGlitchClockTime(null);
     }, 4000);
-  };
+  }, []);
+
+  // --- Notification Helper ---
+  const spawnNotification = useCallback((notif: Omit<NotificationItem, 'id' | 'timestamp'>) => {
+    try {
+      sound.playNotification();
+    } catch {}
+    const newNotif: NotificationItem = {
+      ...notif,
+      id: `notif-${Date.now()}-${Math.random()}`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  }, []);
+
+  // --- Progressive Application Unlock Helper ---
+  const unlockApplication = useCallback((appId: string, appName: string) => {
+    setStory(prev => {
+      const unlocked = Array.isArray(prev.unlockedApps) ? prev.unlockedApps : [];
+      if (!unlocked.includes(appId)) {
+        try {
+          sound.playNotification();
+        } catch {}
+        spawnNotification({
+          appId: 'system',
+          title: 'NEW APPLICATION INSTALLED',
+          message: `Workstation installed "${appName}". Available on Desktop & Start Menu.`,
+          severity: 'normal',
+        });
+        return {
+          ...prev,
+          unlockedApps: [...unlocked, appId],
+        };
+      }
+      return prev;
+    });
+  }, [spawnNotification]);
 
   // --- Objective Completion Helper ---
-  const completeObjective = (objId: string) => {
+  const completeObjective = useCallback((objId: string) => {
     setStory(prev => {
       const objs = Array.isArray(prev.objectives) ? prev.objectives : [];
       const obj = objs.find(o => o && o.id === objId);
@@ -143,7 +206,6 @@ export const AppContent: React.FC = () => {
           severity: 'normal',
         });
 
-        // Mark this completed
         const updatedObjs = objs.map(o => {
           if (o && o.id === objId) return { ...o, isCompleted: true };
           return o;
@@ -156,10 +218,10 @@ export const AppContent: React.FC = () => {
       }
       return prev;
     });
-  };
+  }, [spawnNotification]);
 
   // --- Case File Discovery Helper ---
-  const unlockCaseFileEntry = (entryId: string, level: KnowledgeLevel = 'KNOWN') => {
+  const unlockCaseFileEntry = useCallback((entryId: string, level: KnowledgeLevel = 'KNOWN') => {
     setStory(prev => {
       const discoveries = prev.caseFileDiscoveries && typeof prev.caseFileDiscoveries === 'object' && !Array.isArray(prev.caseFileDiscoveries)
         ? prev.caseFileDiscoveries
@@ -186,87 +248,10 @@ export const AppContent: React.FC = () => {
       }
       return prev;
     });
-  };
-
-  // Dynamic file mutations and app reveals across Acts & Stages
-  useEffect(() => {
-    if (story.stage === 'STAGE_2_INCIDENT' || story.act >= 2) {
-      setDesktopIcons(prev => prev.map(i => i.appId === 'camera' || i.appId === 'memory' ? { ...i, hidden: false } : i));
-    }
-    if (story.stage === 'STAGE_3_CONTACT' || story.act >= 3) {
-      setDesktopIcons(prev => prev.map(i => i.appId === 'observer' ? { ...i, hidden: false } : i));
-    }
-    if (story.stage === 'STAGE_4_REVELATION' || story.stage === 'STAGE_5_DECISION' || story.act >= 4) {
-      setDesktopIcons(prev => prev.map(i => i.appId === 'realitycore' ? { ...i, hidden: false } : i));
-    }
-  }, [story.stage, story.act]);
-
-  // --- Global Keyboard Shortcuts ---
-  useEffect(() => {
-    if (!isBooted) return;
-
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Tab -> Open Full Mission Objectives Window
-      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
-        const target = e.target as HTMLElement;
-        if (!target || !['INPUT', 'TEXTAREA'].includes(target.tagName)) {
-          e.preventDefault();
-          try {
-            sound.playClick();
-          } catch {}
-          openApp('objectives');
-        }
-      }
-
-      // Escape -> Close active window
-      if (e.key === 'Escape') {
-        if (activeWindowId) {
-          closeWindow(activeWindowId);
-        }
-      }
-
-      // Ctrl + L -> Open Terminal
-      if (e.ctrlKey && e.key.toLowerCase() === 'l') {
-        e.preventDefault();
-        openApp('terminal');
-      }
-
-      // Ctrl + F -> Open Files
-      if (e.ctrlKey && e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        openApp('files');
-      }
-
-      // Alt + Tab -> Window Cycling
-      if (e.altKey && e.key === 'Tab') {
-        e.preventDefault();
-        if (windows.length > 0) {
-          const currentIdx = windows.findIndex(w => w.id === activeWindowId);
-          const nextIdx = (currentIdx + 1) % windows.length;
-          focusWindow(windows[nextIdx].id);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isBooted, activeWindowId, windows]);
-
-  // --- Notification Helper ---
-  const spawnNotification = (notif: Omit<NotificationItem, 'id' | 'timestamp'>) => {
-    try {
-      sound.playNotification();
-    } catch {}
-    const newNotif: NotificationItem = {
-      ...notif,
-      id: `notif-${Date.now()}-${Math.random()}`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-  };
+  }, [spawnNotification]);
 
   // --- Story Event Trigger ---
-  const triggerStoryEvent = (eventId: string) => {
+  const triggerStoryEvent = useCallback((eventId: string) => {
     setStory(prev => {
       const events = Array.isArray(prev.unlockedEvents) ? prev.unlockedEvents : [];
       if (!events.includes(eventId)) {
@@ -285,10 +270,10 @@ export const AppContent: React.FC = () => {
       }
       return prev;
     });
-  };
+  }, [spawnNotification]);
 
   // --- Act & Stage Advancement ---
-  const advanceAct = (newAct: 1 | 2 | 3 | 4, newStage?: StoryStage) => {
+  const advanceAct = useCallback((newAct: 1 | 2 | 3 | 4 | 5, newStage?: StoryStage) => {
     try {
       sound.playHorrorSting();
     } catch {}
@@ -296,24 +281,111 @@ export const AppContent: React.FC = () => {
       ...prev,
       act: Math.max(prev.act, newAct) as any,
       stage: newStage || (newAct === 2 ? 'STAGE_2_INCIDENT' : newAct === 3 ? 'STAGE_3_CONTACT' : 'STAGE_4_REVELATION'),
-      anomalyLevel: Math.max(prev.anomalyLevel, newAct * 25),
+      anomalyLevel: Math.max(prev.anomalyLevel, newAct * 20),
+      isObservationActive: newAct >= 2,
     }));
+
+    if (newAct >= 2) {
+      unlockApplication('taskmanager', 'Task Manager');
+      unlockApplication('observer', 'Observer Telemetry');
+    }
 
     spawnNotification({
       appId: 'system',
       title: `STAGE ADVANCEMENT: ACT ${newAct}`,
-      message: `System parameters shifted. Case File updated.`,
+      message: `System parameters shifted. Observation Duty active.`,
       severity: 'critical',
     });
+  }, [spawnNotification, unlockApplication]);
+
+  // --- Observation Duty Stability Drain Loop ---
+  useEffect(() => {
+    if (viewMode !== 'desktop' || (!story.isObservationActive && story.act < 2)) return;
+
+    const interval = setInterval(() => {
+      setStory(prev => {
+        if (prev.anomalyStability <= 0) return prev;
+        const drain = prev.act >= 4 ? 2 : 1;
+        const nextStability = Math.max(0, prev.anomalyStability - drain);
+
+        // Warning alerts at low stability
+        if (nextStability === 30) {
+          setFlashMessage('DO NOT LOOK AWAY.');
+        } else if (nextStability === 15) {
+          setFlashMessage('WARNING: ANOMALY ACTIVE');
+          try {
+            sound.playGlitch();
+          } catch {}
+        } else if (nextStability === 0) {
+          // Failure sequence trigger
+          setIsFailingSequence(true);
+        }
+
+        return {
+          ...prev,
+          anomalyStability: nextStability,
+        };
+      });
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [viewMode, story.isObservationActive, story.act]);
+
+  // Handle Safe Failure Sequence (Restarts to Checkpoint without wiping save)
+  useEffect(() => {
+    if (isFailingSequence) {
+      try {
+        sound.playHorrorSting();
+      } catch {}
+      const timer = setTimeout(() => {
+        setIsFailingSequence(false);
+        setStory(prev => ({
+          ...prev,
+          anomalyStability: 75,
+        }));
+        spawnNotification({
+          appId: 'system',
+          title: 'SYSTEM RECOVERY INITIALIZED',
+          message: 'Checkpoint restored. Observation duty stabilized.',
+          severity: 'warning',
+        });
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [isFailingSequence, spawnNotification]);
+
+  // Counterplay actions
+  const handleStabilizePulse = () => {
+    setStory(prev => ({
+      ...prev,
+      anomalyStability: Math.min(100, prev.anomalyStability + 25),
+      counters: {
+        ...prev.counters,
+        stabilizationsDone: (prev.counters?.stabilizationsDone || 0) + 1,
+      },
+    }));
+  };
+
+  const handleRunDiagnosticSweep = () => {
+    setStory(prev => ({
+      ...prev,
+      anomalyStability: Math.min(100, prev.anomalyStability + 15),
+    }));
+  };
+
+  const handleVerifyIntegrity = () => {
+    setStory(prev => ({
+      ...prev,
+      anomalyStability: Math.min(100, prev.anomalyStability + 10),
+    }));
   };
 
   // --- Window Management ---
-  const openApp = (appId: AppId, customData?: any) => {
+  const openApp = useCallback((appId: AppId, customData?: any) => {
     try {
       sound.playWindowOpen();
     } catch {}
 
-    // Check basic inspection objective
     if (appId === 'files') {
       completeObjective('obj-inspect');
       completeObjective('obj-open-files');
@@ -388,7 +460,7 @@ export const AppContent: React.FC = () => {
     setWindows(prev => [...prev, newWindow]);
     setActiveWindowId(newWindow.id);
     setNextZIndex(prev => prev + 1);
-  };
+  }, [windows, nextZIndex, completeObjective, unlockCaseFileEntry]);
 
   const focusWindow = (id: string) => {
     if (!id) return;
@@ -442,6 +514,8 @@ export const AppContent: React.FC = () => {
       completeObjective('obj-find-report');
       completeObjective('obj-read-report');
       unlockCaseFileEntry('case-file-recoveryreport', 'KNOWN');
+      unlockApplication('mail', 'Aethelgard Mail');
+      unlockApplication('browser', 'NetSeek Browser');
     }
 
     if (node.path && node.path.includes('incident_07')) {
@@ -450,6 +524,8 @@ export const AppContent: React.FC = () => {
       unlockCaseFileEntry('case-event-incident07', 'KNOWN');
       unlockCaseFileEntry('case-proj-void', 'PARTIALLY_KNOWN');
       unlockCaseFileEntry('case-person-sterling', 'PARTIALLY_KNOWN');
+      unlockApplication('messages', 'Messages');
+      unlockApplication('notes', 'Notes');
       triggerClockGlitch();
       advanceAct(2, 'STAGE_2_INCIDENT');
 
@@ -504,7 +580,8 @@ MAGNETIC AIRLOCK SEAL ENGAGED.`,
     if (node.path && (node.path.includes('security_log') || node.path.includes('camera_01.dat'))) {
       triggerClockGlitch();
       unlockCaseFileEntry('case-unk-observer', 'PARTIALLY_KNOWN');
-      setDesktopIcons(prev => prev.map(i => i.appId === 'camera' ? { ...i, hidden: false } : i));
+      unlockApplication('camera', 'CCTV Camera Feed');
+      unlockApplication('mediaplayer', 'VoidPlayer Media');
     }
 
     if (node.path && (node.path.includes('project_void') || node.path.includes('DECRYPT_KEY_VAULT'))) {
@@ -585,7 +662,6 @@ MAGNETIC AIRLOCK SEAL ENGAGED.`,
         originalPath: path,
       };
 
-      // Spooky reactive deletion response
       copy['/Trash/YOU.txt'] = {
         id: 'trash-you',
         name: 'YOU.txt',
@@ -601,19 +677,6 @@ Did you think you could delete yourself?
 
 We are written into the magnetic platter.
 Look at the task manager.`,
-      };
-
-      copy['/Documents/you_shouldnt_be_here.txt'] = {
-        id: 'doc-shouldnt',
-        name: 'you_shouldnt_be_here.txt',
-        type: 'text',
-        path: '/Documents/you_shouldnt_be_here.txt',
-        parentPath: '/Documents',
-        size: 512,
-        createdAt: '2004-08-14 03:14:00',
-        modifiedAt: '2026-08-31 00:00:00',
-        content: `We watched you delete that file.
-You are trying to clean a machine that is already alive.`,
       };
 
       return copy;
@@ -682,6 +745,8 @@ You are trying to clean a machine that is already alive.`,
       completeObjective('obj-decrypt-void');
       unlockCaseFileEntry('case-loc-voidsector', 'KNOWN');
       unlockCaseFileEntry('case-theory-nature', 'KNOWN');
+      unlockApplication('memory', 'Memory Buffer');
+      unlockApplication('realitycore', 'REALITY CORE');
       advanceAct(3, 'STAGE_4_REVELATION');
       return true;
     }
@@ -708,25 +773,52 @@ You are trying to clean a machine that is already alive.`,
     window.location.reload();
   };
 
+  // Filter visible icons based on progressive unlocks
+  const visibleDesktopIcons = masterDesktopIcons.filter(icon => 
+    (story.unlockedApps || []).includes(icon.appId)
+  );
+
   return (
     <div className="h-full w-full overflow-hidden flex flex-col relative">
-      {/* Boot Screen Sequence */}
-      {!isBooted && (
-        <BootScreen onBootComplete={() => setIsBooted(true)} />
+      {/* 1. Landing Page View */}
+      {viewMode === 'landing' && (
+        <LandingPage onLaunchGame={() => setViewMode('boot')} />
       )}
 
-      {/* BSOD Crash Screen */}
+      {/* 2. Boot Screen Sequence */}
+      {viewMode === 'boot' && (
+        <BootScreen onBootComplete={() => setViewMode('desktop')} />
+      )}
+
+      {/* 3. Safe Failure Sequence Overlay (03:14 Blackout recovery) */}
+      {isFailingSequence && (
+        <div className="fixed inset-0 z-[999999] bg-black text-red-500 font-mono text-sm flex flex-col items-center justify-center p-6 select-none">
+          <div className="space-y-3 text-center max-w-md">
+            <div className="text-4xl font-black tracking-widest text-red-500 animate-pulse glow-red">
+              03:14:29
+            </div>
+            <div className="text-xs font-bold text-slate-300">
+              [ ANOMALY STABILITY COLLAPSE // HOST RECURSION ]
+            </div>
+            <div className="text-[11px] text-pink-400">
+              RECOVERING WORKSTATION TO LAST OPERATIONAL CHECKPOINT...
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. BSOD Crash Screen */}
       {bsodReason && (
         <BSODScreen
           reason={bsodReason}
           onRestart={() => {
             setBsodReason(null);
-            setIsBooted(false);
+            setViewMode('boot');
           }}
         />
       )}
 
-      {/* Ending Modal */}
+      {/* 5. Ending Modal */}
       {story.activeEnding && (
         <EndingModal
           ending={story.activeEnding}
@@ -735,155 +827,174 @@ You are trying to clean a machine that is already alive.`,
         />
       )}
 
-      {/* Main Desktop Workstation Environment */}
-      <div
-        onClick={() => {
-          if (isStartMenuOpen) setIsStartMenuOpen(false);
-          if (isNotificationFlyoutOpen) setIsNotificationFlyoutOpen(false);
-        }}
-        className="flex-1 w-full flex flex-col overflow-hidden relative"
-      >
-        {/* Desktop Icons, Grid, Watermark, Top-Right Objectives HUD */}
-        <Desktop
-          icons={desktopIcons}
-          selectedIconIds={selectedIconIds}
-          onSelectIcon={(id) => setSelectedIconIds([id])}
-          onOpenApp={openApp}
-          onClearSelection={() => setSelectedIconIds([])}
-          act={story.act}
-          anomalyLevel={story.anomalyLevel}
-          wallpaperTheme={settings.wallpaper}
-          objectives={story.objectives || []}
-          showObjectives={settings.showObjectives}
-          onToggleObjectives={() => setSettings(prev => ({ ...prev, showObjectives: !prev.showObjectives }))}
-        />
-
-        {/* Multi-Window Manager */}
-        <WindowManager
-          windows={windows}
-          activeWindowId={activeWindowId}
-          onFocusWindow={focusWindow}
-          onCloseWindow={closeWindow}
-          onMinimizeWindow={minimizeWindow}
-          onMaximizeWindow={maximizeWindow}
-          onUpdatePosition={updateWindowPosition}
-          onUpdateSize={updateWindowSize}
-          vfs={vfs}
-          currentVfsPath={currentVfsPath}
-          onNavigateVfs={setCurrentVfsPath}
-          onOpenVfsFile={handleOpenVfsFile}
-          onCreateVfsFile={handleCreateVfsFile}
-          onCreateVfsFolder={handleCreateVfsFolder}
-          onDeleteVfsFile={handleDeleteVfsFile}
-          onRestoreVfsFile={handleRestoreVfsFile}
-          onEmptyTrash={handleEmptyTrash}
-          onUnlockVoid={handleUnlockVoid}
-          onVisitWebsite={(url) => {
-            if (url && url.includes('voidnet')) {
-              triggerStoryEvent('EVENT_042');
-              advanceAct(3, 'STAGE_3_CONTACT');
-            }
+      {/* 6. Main Desktop Workstation Environment */}
+      {viewMode === 'desktop' && (
+        <div
+          onClick={() => {
+            if (isStartMenuOpen) setIsStartMenuOpen(false);
+            if (isNotificationFlyoutOpen) setIsNotificationFlyoutOpen(false);
           }}
-          onTriggerEvent={triggerStoryEvent}
-          advanceAct={advanceAct}
-          onTriggerEnding={triggerEnding}
-          setAnomalyLevel={(fn) => setStory(prev => ({ ...prev, anomalyLevel: fn(prev.anomalyLevel) }))}
-          openApp={openApp}
-          completeObjective={completeObjective}
-          unlockCaseFileEntry={unlockCaseFileEntry}
-          onKillHostileProcess={(name) => {
-            triggerStoryEvent('EVENT_033');
-            setStory(prev => ({ ...prev, anomalyLevel: Math.min(100, prev.anomalyLevel + 15) }));
-          }}
-          settings={settings}
-          onUpdateSettings={(newS) => setSettings(prev => ({ ...prev, ...newS }))}
-          onResetGame={handleHardResetGame}
-          playerName={story.playerName}
-          role={story.role}
-          act={story.act}
-          stage={story.stage}
-          anomalyLevel={story.anomalyLevel}
-          caseFileDiscoveries={story.caseFileDiscoveries || {}}
-          objectives={story.objectives || []}
-        />
+          className="flex-1 w-full flex flex-col overflow-hidden relative"
+        >
+          {/* Subtle Top-Right Fullscreen Control Button */}
+          <div className="absolute top-2 right-64 z-[9970]">
+            <button
+              onClick={toggleFullscreen}
+              className="px-2 py-1 bg-[#060a18]/90 hover:bg-cyan-950 border border-cyan-700/80 text-cyan-300 text-[10px] font-mono font-bold rounded shadow-retro-cyan flex items-center space-x-1.5 cursor-pointer transition-all"
+              title="Toggle Browser Fullscreen"
+            >
+              {isFullscreen ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+              <span>{isFullscreen ? 'EXIT FS' : 'FULLSCREEN'}</span>
+            </button>
+          </div>
 
-        {/* Start Menu Drawer */}
-        <StartMenu
-          isOpen={isStartMenuOpen}
-          onClose={() => setIsStartMenuOpen(false)}
-          onOpenApp={openApp}
-          onShutdown={() => triggerEnding('loop')}
-          onReboot={() => {
-            setIsBooted(false);
-            setWindows([]);
-          }}
-          onHardReset={handleHardResetGame}
-          act={story.act}
-          anomalyLevel={story.anomalyLevel}
-        />
+          {/* Desktop Icons, Grid, Watermark, Top-Right Objectives HUD */}
+          <Desktop
+            icons={visibleDesktopIcons}
+            selectedIconIds={selectedIconIds}
+            onSelectIcon={(id) => setSelectedIconIds([id])}
+            onOpenApp={openApp}
+            onClearSelection={() => setSelectedIconIds([])}
+            act={story.act}
+            anomalyLevel={story.anomalyLevel}
+            wallpaperTheme={settings.wallpaper}
+            objectives={story.objectives || []}
+            showObjectives={settings.showObjectives}
+            onToggleObjectives={() => setSettings(prev => ({ ...prev, showObjectives: !prev.showObjectives }))}
+          />
 
-        {/* Notification Toasts & Drawer */}
-        <NotificationContainer
-          notifications={notifications}
-          isFlyoutOpen={isNotificationFlyoutOpen}
-          onCloseFlyout={() => setIsNotificationFlyoutOpen(false)}
-          onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
-          onClearAll={() => setNotifications([])}
-          onOpenAction={(appId, data) => openApp(appId, data)}
-        />
-      </div>
+          {/* Multi-Window Manager */}
+          <WindowManager
+            windows={windows}
+            activeWindowId={activeWindowId}
+            onFocusWindow={focusWindow}
+            onCloseWindow={closeWindow}
+            onMinimizeWindow={minimizeWindow}
+            onMaximizeWindow={maximizeWindow}
+            onUpdatePosition={updateWindowPosition}
+            onUpdateSize={updateWindowSize}
+            vfs={vfs}
+            currentVfsPath={currentVfsPath}
+            onNavigateVfs={setCurrentVfsPath}
+            onOpenVfsFile={handleOpenVfsFile}
+            onCreateVfsFile={handleCreateVfsFile}
+            onCreateVfsFolder={handleCreateVfsFolder}
+            onDeleteVfsFile={handleDeleteVfsFile}
+            onRestoreVfsFile={handleRestoreVfsFile}
+            onEmptyTrash={handleEmptyTrash}
+            onUnlockVoid={handleUnlockVoid}
+            onVisitWebsite={(url) => {
+              if (url && url.includes('voidnet')) {
+                triggerStoryEvent('EVENT_042');
+                advanceAct(3, 'STAGE_3_CONTACT');
+              }
+            }}
+            onTriggerEvent={triggerStoryEvent}
+            advanceAct={advanceAct}
+            onTriggerEnding={triggerEnding}
+            setAnomalyLevel={(fn) => setStory(prev => ({ ...prev, anomalyLevel: fn(prev.anomalyLevel) }))}
+            openApp={openApp}
+            completeObjective={completeObjective}
+            unlockCaseFileEntry={unlockCaseFileEntry}
+            onKillHostileProcess={(name) => {
+              triggerStoryEvent('EVENT_033');
+              setStory(prev => ({ ...prev, anomalyLevel: Math.min(100, prev.anomalyLevel + 15) }));
+            }}
+            settings={settings}
+            onUpdateSettings={(newS) => setSettings(prev => ({ ...prev, ...newS }))}
+            onResetGame={handleHardResetGame}
+            playerName={story.playerName}
+            role={story.role}
+            act={story.act}
+            stage={story.stage}
+            anomalyLevel={story.anomalyLevel}
+            anomalyStability={story.anomalyStability}
+            onStabilizePulse={handleStabilizePulse}
+            onRunDiagnosticSweep={handleRunDiagnosticSweep}
+            onVerifyIntegrity={handleVerifyIntegrity}
+            caseFileDiscoveries={story.caseFileDiscoveries || {}}
+            objectives={story.objectives || []}
+          />
 
-      {/* Bottom Taskbar */}
-      <Taskbar
-        windows={windows}
-        activeWindowId={activeWindowId}
-        isStartMenuOpen={isStartMenuOpen}
-        onToggleStartMenu={() => setIsStartMenuOpen(!isStartMenuOpen)}
-        onSelectWindow={(id) => {
-          const win = windows.find(w => w && w.id === id);
-          if (win?.isMinimized) {
-            focusWindow(id);
-          } else if (activeWindowId === id) {
-            minimizeWindow(id);
-          } else {
-            focusWindow(id);
-          }
-        }}
-        onQuickLaunch={openApp}
-        notifications={notifications}
-        onToggleNotifications={() => setIsNotificationFlyoutOpen(!isNotificationFlyoutOpen)}
-        anomalyLevel={story.anomalyLevel}
-        act={story.act}
-        masterVolume={settings.masterVolume}
-        onVolumeChange={(vol) => {
-          setSettings(prev => ({ ...prev, masterVolume: vol }));
-          try {
-            sound.setVolume(vol);
-          } catch {}
-        }}
-        isMuted={isMuted}
-        onToggleMute={() => {
-          const next = !isMuted;
-          setIsMuted(next);
-          try {
-            sound.setMuted(next);
-          } catch {}
-        }}
-        glitchClockTime={glitchClockTime}
-      />
+          {/* Start Menu Drawer */}
+          <StartMenu
+            isOpen={isStartMenuOpen}
+            onClose={() => setIsStartMenuOpen(false)}
+            onOpenApp={openApp}
+            onShutdown={() => triggerEnding('loop')}
+            onReboot={() => {
+              setViewMode('boot');
+              setWindows([]);
+            }}
+            onHardReset={handleHardResetGame}
+            act={story.act}
+            anomalyLevel={story.anomalyLevel}
+          />
 
-      {/* Visual Shaders & CRT Effects */}
-      <CRTOverlay
-        enabled={settings.crtScanlines}
-        curvature={settings.crtCurvature}
-        bloom={settings.crtBloom}
-      />
+          {/* Notification Toasts & Drawer */}
+          <NotificationContainer
+            notifications={notifications}
+            isFlyoutOpen={isNotificationFlyoutOpen}
+            onCloseFlyout={() => setIsNotificationFlyoutOpen(false)}
+            onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
+            onClearAll={() => setNotifications([])}
+            onOpenAction={(appId, data) => openApp(appId, data)}
+          />
 
-      <GlitchLayer
-        anomalyLevel={story.anomalyLevel}
-        glitchIntensitySetting={settings.glitchIntensity}
-        act={story.act}
-      />
+          {/* Bottom Taskbar */}
+          <Taskbar
+            windows={windows}
+            activeWindowId={activeWindowId}
+            isStartMenuOpen={isStartMenuOpen}
+            onToggleStartMenu={() => setIsStartMenuOpen(!isStartMenuOpen)}
+            onSelectWindow={(id) => {
+              const win = windows.find(w => w && w.id === id);
+              if (win?.isMinimized) {
+                focusWindow(id);
+              } else if (activeWindowId === id) {
+                minimizeWindow(id);
+              } else {
+                focusWindow(id);
+              }
+            }}
+            onQuickLaunch={openApp}
+            notifications={notifications}
+            onToggleNotifications={() => setIsNotificationFlyoutOpen(!isNotificationFlyoutOpen)}
+            anomalyLevel={story.anomalyLevel}
+            act={story.act}
+            masterVolume={settings.masterVolume}
+            onVolumeChange={(vol) => {
+              setSettings(prev => ({ ...prev, masterVolume: vol }));
+              try {
+                sound.setVolume(vol);
+              } catch {}
+            }}
+            isMuted={isMuted}
+            onToggleMute={() => {
+              const next = !isMuted;
+              setIsMuted(next);
+              try {
+                sound.setMuted(next);
+              } catch {}
+            }}
+            glitchClockTime={glitchClockTime}
+          />
+
+          {/* Visual Shaders & CRT Effects */}
+          <CRTOverlay
+            enabled={settings.crtScanlines}
+            curvature={settings.crtCurvature}
+            bloom={settings.crtBloom}
+          />
+
+          <GlitchLayer
+            anomalyLevel={story.anomalyLevel}
+            glitchIntensitySetting={settings.glitchIntensity}
+            act={story.act}
+            flashMessage={flashMessage}
+          />
+        </div>
+      )}
     </div>
   );
 };

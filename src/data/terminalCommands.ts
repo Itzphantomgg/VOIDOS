@@ -348,6 +348,33 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
         ];
       }
 
+      if (key === 'SILENCE_PROTOCOL' || key === 'WIPE_MEMORY' || key === 'SILENCE') {
+        ctx.completeObjective('obj-resolve');
+        ctx.triggerEnding('silence');
+        return [
+          'EXECUTING SILENCE PROTOCOL...',
+          'ZERO-FILLING NEURAL BUFFER SYNAPSES...',
+        ];
+      }
+
+      if (key === 'LIBERATE_MINDS' || key === 'RELEASE' || key === 'FREE_THEM') {
+        ctx.completeObjective('obj-resolve');
+        ctx.triggerEnding('release');
+        return [
+          'BROADCASTING STORED MEMORIES INTO THE ATMOSPHERE...',
+          'THE CONTAINED CONSCIOUSNESSES ARE SET FREE.',
+        ];
+      }
+
+      if (key === 'ANCIENT_ORIGIN' || key === 'ORIGIN' || key === 'EXCAVATE') {
+        ctx.completeObjective('obj-resolve');
+        ctx.triggerEnding('origin');
+        return [
+          'DECIPHERING PRE-NEXUS 1970 MAINFRAME ARTIFACT...',
+          'THE ENTITY AWAKENS IN ITS TRUE FORM.',
+        ];
+      }
+
       if (key === 'VOID_AWAKEN') {
         ctx.advanceAct(4);
         ctx.triggerEvent('EVENT_042');

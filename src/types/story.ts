@@ -1,4 +1,4 @@
-export type StoryAct = 1 | 2 | 3 | 4;
+export type StoryAct = 1 | 2 | 3 | 4 | 5;
 
 export type StoryStage = 
   | 'STAGE_1_RECOVERY'
@@ -15,7 +15,11 @@ export type EndingType =
   | 'loop'
   | 'the_operator'
   | 'void_secret'
-  | 'acceptance';
+  | 'acceptance'
+  | 'silence'
+  | 'release'
+  | 'false_escape'
+  | 'origin';
 
 export type KnowledgeLevel = 'UNKNOWN' | 'PARTIALLY_KNOWN' | 'KNOWN';
 
@@ -58,6 +62,8 @@ export interface StoryState {
   act: StoryAct;
   stage: StoryStage;
   anomalyLevel: number; // 0 to 100
+  anomalyStability: number; // 100 to 0 (Observation duty stability)
+  isObservationActive: boolean;
   playerName: string;
   role: string; // "RECOVERY_OPERATOR"
   flags: Record<string, boolean>;
@@ -66,6 +72,7 @@ export interface StoryState {
     filesOpened: number;
     emailsRead: number;
     glitchEncounters: number;
+    stabilizationsDone: number;
   };
   unlockedEvents: string[]; // Event IDs
   caseFileDiscoveries: Record<string, KnowledgeLevel>; // entryId -> KnowledgeLevel
@@ -79,6 +86,6 @@ export interface StoryState {
   processesKilled: string[];
   messagesAnswered: string[];
   currentVoidDialogueStep: number;
-  unlockedApps: string[];
+  unlockedApps: string[]; // List of AppId strings unlocked on desktop
   unlockedFolders: string[];
 }

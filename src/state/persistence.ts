@@ -74,18 +74,26 @@ export function loadGameState(): PersistentSaveData | null {
         return { ...def };
       });
 
+      // Sanitize Unlocked Apps (Guarantee at least initial 5 apps)
+      const baseApps = ['files', 'terminal', 'systeminfo', 'casefile', 'trash'];
+      const rawUnlocked = Array.isArray(s.unlockedApps) ? s.unlockedApps : baseApps;
+      const sanitizedApps = Array.from(new Set([...baseApps, ...rawUnlocked]));
+
       sanitized.story = {
         ...initialStoryState,
         ...s,
-        act: (s.act >= 1 && s.act <= 4 ? s.act : 1) as any,
+        act: (s.act >= 1 && s.act <= 5 ? s.act : 1) as any,
         stage: s.stage || 'STAGE_1_RECOVERY',
         anomalyLevel: typeof s.anomalyLevel === 'number' ? Math.max(0, Math.min(100, s.anomalyLevel)) : 0,
+        anomalyStability: typeof s.anomalyStability === 'number' ? Math.max(0, Math.min(100, s.anomalyStability)) : 100,
+        isObservationActive: Boolean(s.isObservationActive),
         playerName: typeof s.playerName === 'string' ? s.playerName : 'RECOVERY_OPERATOR',
         role: typeof s.role === 'string' ? s.role : 'RECOVERY_OPERATOR',
         caseFileDiscoveries: sanitizedDiscoveries,
         objectives: sanitizedObjectives,
         unlockedEvents: Array.isArray(s.unlockedEvents) ? s.unlockedEvents : [],
         endingDiscovered: Array.isArray(s.endingDiscovered) ? s.endingDiscovered : [],
+        unlockedApps: sanitizedApps,
         flags: s.flags && typeof s.flags === 'object' ? s.flags : {},
         counters: s.counters && typeof s.counters === 'object' ? s.counters : initialStoryState.counters,
       };
@@ -113,7 +121,7 @@ export function loadGameState(): PersistentSaveData | null {
         ambientHum: Boolean(parsed.settings.ambientHum),
         clockFormat24: parsed.settings.clockFormat24 !== false,
         realityMode: Boolean(parsed.settings.realityMode),
-        customCursor: false, // strictly enforce false
+        customCursor: false, // strictly enforce native single cursor
         showObjectives: parsed.settings.showObjectives !== false,
       };
     }
