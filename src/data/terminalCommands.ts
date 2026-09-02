@@ -146,7 +146,7 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (target.includes('config.dat')) {
         ctx.triggerStoryFlag?.('credentials_recovered');
       }
-      if (target.includes('operator_07') || target.includes('operator.txt')) {
+      if (target.includes('user07') || target.includes('operator_07') || target.includes('operator.txt')) {
         ctx.triggerStoryFlag?.('user07_identified');
         ctx.triggerStoryFlag?.('timestamp_0314_found');
         ctx.unlockCaseFileEntry('case-person-user07');
@@ -161,6 +161,27 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       if (target.includes('recovered_entry.txt')) {
         ctx.triggerStoryFlag?.('recovered_line_read');
       }
+      if (target.includes('incident_07_recovered')) {
+        ctx.triggerStoryFlag?.('incident07_report_reviewed');
+      }
+      if (target.includes('security_07b')) {
+        ctx.triggerStoryFlag?.('security_07b_read');
+      }
+      if (target.includes('camera_03')) {
+        ctx.triggerStoryFlag?.('camera03_located');
+      }
+      if (target.includes('user07_final_entry')) {
+        ctx.triggerStoryFlag?.('user07_final_entry_read');
+      }
+      if (target.includes('user07_contact')) {
+        ctx.triggerStoryFlag?.('void_communication_received');
+      }
+      if (target.includes('incident_summary')) {
+        ctx.triggerStoryFlag?.('archive_incident_recovered');
+      }
+      if (target.includes('witness_statement')) {
+        ctx.triggerStoryFlag?.('witness_statement_read');
+      }
       if (target.includes('marcus_record')) {
         ctx.triggerStoryFlag?.('marcus_record_read');
       }
@@ -169,6 +190,18 @@ export function handleTerminalCommand(cmdString: string, ctx: TerminalContext): 
       }
       if (target.includes('security_report')) {
         ctx.triggerStoryFlag?.('security_report_read');
+      }
+      if (target.includes('DECRYPT_KEY_VAULT')) {
+        ctx.triggerStoryFlag?.('cipher_discovered');
+      }
+      if (target.includes('sterling_log')) {
+        ctx.triggerStoryFlag?.('sterling_logs_read');
+      }
+      if (target.includes('marcus_core')) {
+        ctx.triggerStoryFlag?.('marcus_truth_revealed');
+      }
+      if (target.includes('iteration_14')) {
+        ctx.triggerStoryFlag?.('iteration_revealed');
       }
 
       if (node.content) {

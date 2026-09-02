@@ -1,11 +1,13 @@
 import React from 'react';
 import { StoryState } from '../../types/story';
 import { StoryEngine } from '../../state/storyEngine';
-import { X, Bug, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { X, Bug, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { masterStoryActs } from '../../data/storyActs';
+import { VFSNode } from '../../types/fs';
 
 interface StoryDebugPanelProps {
   storyState: StoryState;
+  vfs?: Record<string, VFSNode>;
   onClose: () => void;
   onForceAdvanceAct: (act: any) => void;
   onTriggerFlag: (flag: string) => void;
@@ -13,20 +15,21 @@ interface StoryDebugPanelProps {
 
 export const StoryDebugPanel: React.FC<StoryDebugPanelProps> = ({
   storyState,
+  vfs,
   onClose,
   onForceAdvanceAct,
   onTriggerFlag,
 }) => {
-  const activeObj = StoryEngine.getActiveObjective(storyState);
+  const activeObj = StoryEngine.getActiveObjective(storyState, vfs);
   const currentActObjectives = masterStoryActs[storyState.act] || [];
 
   return (
-    <div className="fixed bottom-12 left-4 z-[999999] bg-[#050816]/95 border-2 border-yellow-500/80 p-4 rounded max-w-md w-full shadow-2xl font-mono text-xs text-slate-200 select-none max-h-[75vh] overflow-y-auto space-y-3">
+    <div className="fixed bottom-12 left-4 z-[999999] bg-[#050816]/95 border-2 border-yellow-500/80 p-4 rounded max-w-md w-full shadow-2xl font-mono text-xs text-slate-200 select-none max-h-[75vh] overflow-y-auto space-y-3 backdrop-blur-md">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-yellow-500/50 pb-2 text-yellow-300 font-bold">
         <div className="flex items-center space-x-1.5">
           <Bug size={14} />
-          <span>VOID//OS STORY PROGRESSION DEBUGGER</span>
+          <span>STORY & VFS ENGINE DEBUGGER</span>
         </div>
         <button onClick={onClose} className="text-slate-400 hover:text-white cursor-pointer">
           <X size={14} />
@@ -47,7 +50,14 @@ export const StoryDebugPanel: React.FC<StoryDebugPanelProps> = ({
 
       {/* Active Objective */}
       <div className="p-2.5 bg-[#040714] border border-cyan-900 rounded space-y-1">
-        <div className="text-[10px] text-cyan-400 font-bold">ACTIVE OBJECTIVE:</div>
+        <div className="flex items-center justify-between text-[10px] text-cyan-400 font-bold">
+          <span>ACTIVE OBJECTIVE:</span>
+          {activeObj && StoryEngine.validateObjective(activeObj, storyState, vfs) ? (
+            <span className="text-green-400 flex items-center space-x-1"><ShieldCheck size={11} /><span>VALID</span></span>
+          ) : (
+            <span className="text-amber-400 flex items-center space-x-1"><AlertTriangle size={11} /><span>PENDING</span></span>
+          )}
+        </div>
         <div className="text-xs font-bold text-slate-100">
           {activeObj?.title || 'None'}
         </div>
@@ -55,13 +65,13 @@ export const StoryDebugPanel: React.FC<StoryDebugPanelProps> = ({
           {activeObj?.task}
         </div>
         <div className="text-[9px] text-pink-400">
-          Flag: {activeObj?.onCompleteFlag}
+          Where: {activeObj?.where} | Flag: {activeObj?.onCompleteFlag}
         </div>
       </div>
 
       {/* Act Objectives Checklist */}
       <div className="space-y-1">
-        <div className="text-[10px] text-yellow-400 font-bold">ACT {storyState.act} CHECKLIST:</div>
+        <div className="text-[10px] text-yellow-400 font-bold">ACT {storyState.act} OBJECTIVE CHECKLIST:</div>
         <div className="space-y-0.5 max-h-36 overflow-y-auto pr-1 text-[10px]">
           {currentActObjectives.map((obj) => {
             const isDone = Boolean(storyState.flags?.[obj.onCompleteFlag]);
@@ -69,12 +79,17 @@ export const StoryDebugPanel: React.FC<StoryDebugPanelProps> = ({
               <div
                 key={obj.id}
                 onClick={() => onTriggerFlag(obj.onCompleteFlag)}
-                className={`p-1 rounded flex items-center justify-between cursor-pointer ${
-                  isDone ? 'bg-green-950/40 text-green-300' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
+                className={`p-1.5 rounded flex items-center justify-between cursor-pointer transition-colors ${
+                  isDone ? 'bg-green-950/40 text-green-300 border border-green-900/50' : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
                 }`}
+                title="Click to toggle flag"
               >
                 <span>{obj.stepNumber}. {obj.title}</span>
-                {isDone && <CheckCircle2 size={10} className="text-green-400 shrink-0 ml-1" />}
+                {isDone ? (
+                  <CheckCircle2 size={11} className="text-green-400 shrink-0 ml-1" />
+                ) : (
+                  <span className="text-[9px] text-slate-600 font-mono">[{obj.onCompleteFlag}]</span>
+                )}
               </div>
             );
           })}
@@ -95,8 +110,8 @@ export const StoryDebugPanel: React.FC<StoryDebugPanelProps> = ({
           <button
             key={actNum}
             onClick={() => onForceAdvanceAct(actNum)}
-            className={`flex-1 py-1 rounded text-[10px] font-bold cursor-pointer ${
-              storyState.act === actNum ? 'bg-pink-900 text-pink-200' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            className={`flex-1 py-1 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+              storyState.act === actNum ? 'bg-pink-900 text-pink-200 border border-pink-500' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
             }`}
           >
             ACT {actNum}

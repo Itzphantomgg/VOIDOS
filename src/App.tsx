@@ -725,7 +725,7 @@ export const AppContent: React.FC = () => {
       triggerStoryFlag('credentials_recovered');
     }
 
-    if (node.path && (node.path.includes('operator_07') || node.path.includes('operator.txt'))) {
+    if (node.path && (node.path.includes('user07.txt') || node.path.includes('operator_07') || node.path.includes('operator.txt'))) {
       triggerStoryFlag('user07_identified');
       triggerStoryFlag('timestamp_0314_found');
       unlockCaseFileEntry('case-person-user07', 'KNOWN');
@@ -746,11 +746,50 @@ export const AppContent: React.FC = () => {
       unlockCaseFileEntry('case-theory-nature', 'KNOWN');
     }
 
-    if (node.path && (node.path.includes('Incident_07') || node.path.includes('incident_07'))) {
-      triggerStoryFlag('incident07_discovered');
+    // Act II Narrative Triggers
+    if (node.path && node.path.includes('incident_07_recovered')) {
+      triggerStoryFlag('incident07_report_reviewed');
+      unlockCaseFileEntry('case-event-incident07', 'KNOWN');
     }
 
-    // Act II Narrative Triggers
+    if (node.path && node.path.includes('security_07b')) {
+      triggerStoryFlag('security_07b_read');
+      unlockCaseFileEntry('case-loc-sector7', 'KNOWN');
+    }
+
+    if (node.path && node.path.includes('camera_03.dat')) {
+      triggerStoryFlag('camera03_located');
+      if (!(story.unlockedApps || []).includes('camera')) {
+        triggerAppInstallation('camera', 'CCTV Camera Feed');
+      }
+    }
+
+    if (node.path && node.path.includes('user07_final_entry')) {
+      triggerStoryFlag('user07_final_entry_read');
+      unlockCaseFileEntry('case-proj-void', 'KNOWN');
+      if (!(story.unlockedApps || []).includes('messages')) {
+        triggerAppInstallation('messages', 'Messages Communication Relay');
+      }
+    }
+
+    if (node.path && node.path.includes('user07_contact.dat')) {
+      triggerStoryFlag('void_communication_received');
+      unlockCaseFileEntry('case-person-user07', 'KNOWN');
+      if (!(story.unlockedApps || []).includes('messages')) {
+        triggerAppInstallation('messages', 'Messages Communication Relay');
+      }
+    }
+
+    if (node.path && node.path.includes('incident_summary')) {
+      triggerStoryFlag('archive_incident_recovered');
+      unlockCaseFileEntry('case-event-incident07', 'KNOWN');
+    }
+
+    if (node.path && node.path.includes('witness_statement_0314')) {
+      triggerStoryFlag('witness_statement_read');
+      unlockCaseFileEntry('case-event-incident07', 'KNOWN');
+    }
+
     if (node.path && node.path.includes('marcus_record')) {
       triggerStoryFlag('marcus_record_read');
       unlockCaseFileEntry('case-person-user07', 'KNOWN');
@@ -766,19 +805,25 @@ export const AppContent: React.FC = () => {
       unlockCaseFileEntry('case-loc-sector7', 'KNOWN');
     }
 
-    if (node.path && node.path.includes('camera_03.dat')) {
-      triggerStoryFlag('camera03_located');
-      triggerAppInstallation('camera', 'CCTV Camera Feed');
+    if (node.path && node.path.includes('DECRYPT_KEY_VAULT')) {
+      triggerStoryFlag('cipher_discovered');
+      unlockCaseFileEntry('case-pass-nullrecursion', 'KNOWN');
     }
 
-    if (node.path && node.path.includes('witness_statement_0314')) {
-      triggerStoryFlag('witness_statement_read');
-      unlockCaseFileEntry('case-event-incident07', 'KNOWN');
+    // Act IV & V Narrative Triggers
+    if (node.path && node.path.includes('sterling_log')) {
+      triggerStoryFlag('sterling_logs_read');
+      unlockCaseFileEntry('case-theory-nature', 'KNOWN');
     }
 
-    if (node.path && node.path.includes('user07_contact.dat')) {
-      triggerStoryFlag('messages_app_installed');
-      triggerAppInstallation('messages', 'Messages Communication Relay');
+    if (node.path && node.path.includes('marcus_core')) {
+      triggerStoryFlag('marcus_truth_revealed');
+      unlockCaseFileEntry('case-person-user07', 'KNOWN');
+    }
+
+    if (node.path && node.path.includes('iteration_14')) {
+      triggerStoryFlag('iteration_revealed');
+      unlockCaseFileEntry('case-theory-nature', 'KNOWN');
     }
 
     if (node.type === 'audio') {
@@ -1103,6 +1148,7 @@ Look at the task manager.`,
       {isStoryDebugOpen && (
         <StoryDebugPanel
           storyState={story}
+          vfs={vfs}
           onClose={() => setIsStoryDebugOpen(false)}
           onForceAdvanceAct={(actNum) => advanceAct(actNum)}
           onTriggerFlag={(flag) => triggerStoryFlag(flag)}

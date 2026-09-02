@@ -20,7 +20,7 @@ export const ObjectivesModal: React.FC<ObjectivesModalProps> = ({ storyState }) 
     2: 'ACT II: THE INCIDENT',
     3: 'ACT III: OBSERVATION',
     4: 'ACT IV: CONTACT',
-    5: 'ACT V: CONTROL',
+    5: 'ACT V: THE TRUTH & RESOLUTION',
   };
 
   const completedCount = currentActObjectives.filter(o => flags[o.onCompleteFlag]).length;

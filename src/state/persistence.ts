@@ -4,6 +4,8 @@ import { OSSettings } from '../types/os';
 import { initialStoryState, defaultGameObjectives } from './storyStore';
 import { initialVFSNodes } from '../data/initialFileSystem';
 
+import { StoryEngine } from './storyEngine';
+
 const SAVE_KEY = 'VOID_OS_SAVE_V1';
 
 export interface PersistentSaveData {
@@ -79,7 +81,7 @@ export function loadGameState(): PersistentSaveData | null {
       const rawUnlocked = Array.isArray(s.unlockedApps) ? s.unlockedApps : baseApps;
       const sanitizedApps = Array.from(new Set([...baseApps, ...rawUnlocked]));
 
-      sanitized.story = {
+      sanitized.story = StoryEngine.migrateSaveState({
         ...initialStoryState,
         ...s,
         act: (s.act >= 1 && s.act <= 5 ? s.act : 1) as any,
@@ -96,7 +98,7 @@ export function loadGameState(): PersistentSaveData | null {
         unlockedApps: sanitizedApps,
         flags: s.flags && typeof s.flags === 'object' ? s.flags : {},
         counters: s.counters && typeof s.counters === 'object' ? s.counters : initialStoryState.counters,
-      };
+      });
     }
 
     // 2. Sanitize & Merge VFS State
