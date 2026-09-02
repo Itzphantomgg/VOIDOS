@@ -6,10 +6,16 @@ import {
   Mail,
   User,
   BookOpen,
-  ChevronDown
+  ChevronDown,
+  Layers,
+  Award,
+  Trophy,
+  Target,
+  RotateCcw
 } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 import { WikiModal } from './WikiModal';
+import { BackgroundParticles } from './BackgroundParticles';
 import { loadGameState } from '../../state/persistence';
 import { initialStoryState } from '../../state/storyStore';
 import { StoryState } from '../../types/story';
@@ -17,15 +23,20 @@ import { StoryState } from '../../types/story';
 interface LandingPageProps {
   onLaunchGame: () => void;
   storyState?: StoryState;
+  onResetProgress?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storyState }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ 
+  onLaunchGame, 
+  storyState,
+  onResetProgress 
+}) => {
   const [isLaunching, setIsLaunching] = useState(false);
-  const [launchMessage, setLaunchMessage] = useState('REQUESTING RECOVERY ENVIRONMENT...');
+  const [launchMessage, setLaunchMessage] = useState('INITIALIZING RECOVERY ENVIRONMENT...');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isWikiOpen, setIsWikiOpen] = useState(false);
 
-  // Load persistent story state for profile metrics
+  // Active story metrics
   const activeStory = storyState || loadGameState()?.story || initialStoryState;
 
   const handlePlayClick = async () => {
@@ -60,30 +71,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
     }
   };
 
+  const caseFileCount = Object.keys(activeStory.caseFileDiscoveries || {}).length;
+  const caseFilePercent = Math.min(100, Math.round((caseFileCount / 12) * 100));
+  const completedObjectives = (activeStory.objectives || []).filter(o => o?.isCompleted).length;
+  const totalObjectives = (activeStory.objectives || []).length || 13;
+  const unlockedAchievements = (activeStory.unlockedEvents || []).length;
+  const discoveredEndings = (activeStory.endingDiscovered || []).length;
+
   return (
     <div className="min-h-screen bg-[#030611] text-slate-300 font-mono select-none overflow-x-hidden relative flex flex-col">
-      {/* Background Subtle Digital Texture */}
-      <div 
-        className="fixed inset-0 pointer-events-none z-0 opacity-40"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px)
-          `,
-          backgroundSize: '24px 24px',
-        }}
-      />
+      {/* Background Particles & Scanline Texture */}
+      <BackgroundParticles />
 
       {/* Top Navigation Bar - Simple & Restrained */}
       <nav className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#040817]/95 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2.5">
-          <div className="w-6 h-6 bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 flex items-center justify-center font-black text-xs rounded-xs">
+          <div className="w-5 h-5 bg-cyan-500/10 text-cyan-300 border border-cyan-500/40 flex items-center justify-center font-black text-xs rounded-xs">
             ⬡
           </div>
           <span className="font-bold text-sm tracking-wider text-slate-100">
             VOID<span className="text-pink-400">//</span>OS
           </span>
-          <span className="text-[10px] text-slate-500 font-normal ml-1 hidden sm:inline">BUILD v1.3.0</span>
+          <span className="text-[10px] text-slate-500 font-normal ml-1 hidden sm:inline">BUILD v1.3.2</span>
         </div>
 
         {/* Nav Links: VOID//OS | ABOUT | STORY | WIKI | PROFILE | PLAY */}
@@ -96,7 +105,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
           </button>
           <button 
             onClick={() => {
-              sound.playClick();
+              try { sound.playClick(); } catch {}
               setIsWikiOpen(true);
             }} 
             className="hover:text-cyan-300 transition-colors cursor-pointer flex items-center space-x-1"
@@ -106,7 +115,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
           </button>
           <button 
             onClick={() => {
-              sound.playClick();
+              try { sound.playClick(); } catch {}
               setIsProfileOpen(true);
             }} 
             className="hover:text-cyan-300 transition-colors cursor-pointer flex items-center space-x-1"
@@ -120,7 +129,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
-              sound.playClick();
+              try { sound.playClick(); } catch {}
               setIsProfileOpen(true);
             }}
             className="md:hidden p-1.5 bg-slate-900 border border-slate-700 text-slate-300 rounded text-xs cursor-pointer"
@@ -130,7 +139,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
           </button>
           <button
             onClick={handlePlayClick}
-            className="px-4 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 font-bold text-xs rounded border border-cyan-500 transition-all cursor-pointer flex items-center space-x-1.5"
+            className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 font-bold text-xs rounded border border-cyan-500/60 transition-all cursor-pointer flex items-center space-x-1.5"
           >
             <Play size={12} className="text-cyan-400" />
             <span>PLAY</span>
@@ -142,70 +151,70 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
       <div className="relative z-10 flex-1 flex flex-col items-center max-w-3xl w-full mx-auto px-4 sm:px-6">
         
         {/* =========================================================================
-            SCREEN 01: HERO (EXTREMELY SIMPLE, CLEAN, DE-GLOWED)
+            SCREEN 01: HERO (CLEAN, DARK, PERFECTLY CENTERED)
            ========================================================================= */}
         <section className="min-h-[82vh] w-full flex flex-col items-center justify-center text-center space-y-6 py-12">
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h1 className="text-5xl sm:text-6xl font-black tracking-widest text-slate-100">
-              VOID//OS
+              VOID<span className="text-pink-500">//</span>OS
             </h1>
-            <p className="text-xs sm:text-sm font-bold tracking-[0.2em] text-cyan-400">
-              AN OPERATING SYSTEM THAT REMEMBERS.
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-cyan-400/90 uppercase">
+              An Operating System That Remembers.
             </p>
           </div>
 
-          <div className="max-w-md text-xs text-slate-400 leading-relaxed space-y-2 py-2">
+          <div className="max-w-md text-xs text-slate-400 leading-relaxed space-y-1.5 py-2">
             <p>
               A recovery package was discovered inside an abandoned NEXUS SYSTEMS facility.
             </p>
             <p>
               The system was shut down in 2004.
             </p>
-            <p className="text-slate-300 font-medium">
+            <p className="text-slate-300 font-medium pt-1">
               It was not supposed to boot again.
             </p>
           </div>
 
-          {/* Primary CTA */}
-          <div className="pt-3">
+          {/* Primary CTA Button */}
+          <div className="pt-2">
             <button
               onClick={handlePlayClick}
-              className="px-10 py-3.5 bg-slate-900 hover:bg-cyan-950 text-cyan-300 font-bold text-sm tracking-widest border border-cyan-500 rounded transition-all cursor-pointer flex items-center space-x-2"
+              className="px-8 py-3 bg-[#080d22] hover:bg-[#0c1433] text-cyan-300 font-bold text-xs tracking-widest border border-cyan-500/70 hover:border-cyan-400 rounded transition-all cursor-pointer flex items-center space-x-2"
             >
-              <Play size={15} className="text-cyan-400" />
-              <span>PLAY VOID//OS</span>
+              <Play size={14} className="text-cyan-400" />
+              <span>PLAY GAME</span>
             </button>
           </div>
 
-          {/* Scroll Down Indicator */}
+          {/* Subtle Scroll Down Indicator */}
           <div 
             onClick={() => scrollToSection('about')}
-            className="pt-10 text-slate-600 hover:text-slate-400 transition-colors cursor-pointer flex flex-col items-center space-y-1 text-[10px]"
+            className="pt-8 text-slate-600 hover:text-slate-400 transition-colors cursor-pointer flex flex-col items-center space-y-1 text-[10px]"
           >
             <span>SCROLL TO EXPLORE</span>
-            <ChevronDown size={14} className="animate-bounce" />
+            <ChevronDown size={13} className="animate-bounce" />
           </div>
         </section>
 
         {/* Narrative Flow Sections */}
-        <div className="w-full space-y-24 pb-24">
+        <div className="w-full space-y-20 pb-24">
 
           {/* =========================================================================
               SCREEN 02: WHAT IS VOID//OS?
              ========================================================================= */}
           <section id="about" className="space-y-3 scroll-mt-20">
-            <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
-              01 // WHAT IS THIS?
+            <div className="text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              01 // WHAT IS VOID//OS?
             </div>
-            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
+            <div className="p-5 bg-[#050814] border border-slate-800/90 rounded space-y-2.5 text-xs leading-relaxed text-slate-300">
               <p>
-                <strong>VOID//OS</strong> is an interactive mystery played entirely through a simulated operating system.
-              </p>
-              <p>
-                You boot into an abandoned 2004 workstation: browsing files, running diagnostic commands in the terminal, inspecting processes, and discovering what happened inside the facility.
+                <strong>VOID//OS</strong> is an interactive mystery played entirely through a simulated retro operating system.
               </p>
               <p className="text-slate-400">
-                The operating system itself is the game. As you explore, the computer begins responding to your actions.
+                You boot into an abandoned 2004 workstation: browsing files, running diagnostic commands in the terminal, reading personnel communications, and reconstructing what occurred inside the facility.
+              </p>
+              <p className="text-slate-400">
+                As you dig deeper, the computer begins responding to your actions in real time.
               </p>
             </div>
           </section>
@@ -217,45 +226,45 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
             <div className="text-[11px] font-bold text-pink-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
               02 // THE INCIDENT
             </div>
-            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
+            <div className="p-5 bg-[#050814] border border-slate-800/90 rounded space-y-3 text-xs leading-relaxed text-slate-300">
               <p>
-                In 2004, NEXUS SYSTEMS developed VOID//OS as an adaptive cognitive system designed to learn from human users.
+                In 2004, NEXUS SYSTEMS developed VOID//OS as an adaptive cognitive kernel designed to learn from human operator input.
               </p>
-              <div className="p-3 bg-black/60 border-l border-pink-500 rounded-r text-[11px] text-pink-300">
-                <strong>AUGUST 14, 2004 // 03:14 AM:</strong> An unlogged anomaly occurred during cognitive feedback trials. The facility was evacuated and sealed. VOID//OS was supposedly terminated.
+              <div className="p-3 bg-[#030611] border-l-2 border-pink-500 rounded-r text-[11px] text-pink-300/90">
+                <strong>AUGUST 14, 2004 // 03:14 AM:</strong> An unlogged anomaly occurred during feedback trials. The facility was evacuated and sealed. VOID was officially terminated.
               </div>
               <p className="text-slate-400">
-                Years later, an intact recovery package was found. You are the first operator to initialize the system since the collapse.
+                Years later, an intact recovery package was retrieved. You are the recovery technician assigned to inspect the machine.
               </p>
             </div>
           </section>
 
           {/* =========================================================================
-              SCREEN 04: YOUR ASSIGNMENT
+              SCREEN 04: YOUR ROLE
              ========================================================================= */}
           <section className="space-y-3 scroll-mt-20">
             <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
-              03 // YOUR ASSIGNMENT
+              03 // YOUR ROLE
             </div>
-            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs">
-              <div className="text-slate-200 font-bold">RECOVERY OPERATOR DIRECTIVES:</div>
+            <div className="p-5 bg-[#050814] border border-slate-800/90 rounded space-y-3 text-xs">
+              <div className="text-slate-200 font-bold">RECOVERY OPERATOR ASSIGNMENT:</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-400 text-[11px]">
-                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <strong className="text-slate-200">01.</strong> Inspect workstation drives.
                 </div>
-                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <strong className="text-slate-200">02.</strong> Recover classified archives.
                 </div>
-                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <strong className="text-slate-200">03.</strong> Investigate Incident 07.
                 </div>
-                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <strong className="text-slate-200">04.</strong> Determine what happened at 03:14.
                 </div>
-                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
-                  <strong className="text-slate-200">05.</strong> Locate the VOID Core partition.
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
+                  <strong className="text-slate-200">05.</strong> Locate the /VOID core partition.
                 </div>
-                <div className="p-2 bg-[#080d22] border border-slate-800/80 rounded">
+                <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <strong className="text-slate-200">06.</strong> Decide the system's fate.
                 </div>
               </div>
@@ -263,121 +272,122 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
           </section>
 
           {/* =========================================================================
-              SCREEN 05: HOW IT WORKS
+              SCREEN 05: HOW TO PLAY
              ========================================================================= */}
           <section className="space-y-3 scroll-mt-20">
-            <div className="text-[11px] font-bold text-purple-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
-              04 // HOW IT WORKS
+            <div className="text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              04 // HOW TO PLAY
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
+              <div className="p-3.5 bg-[#050814] border border-slate-800/90 rounded space-y-1">
                 <div className="font-bold text-cyan-300">EXPLORE</div>
                 <p className="text-[11px] text-slate-400">Search file trees, examine hidden dotfiles, and inspect system logs.</p>
               </div>
-              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
+              <div className="p-3.5 bg-[#050814] border border-slate-800/90 rounded space-y-1">
                 <div className="font-bold text-cyan-300">INVESTIGATE</div>
                 <p className="text-[11px] text-slate-400">Use terminal diagnostics, chat transcripts, and your Case File journal.</p>
               </div>
-              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
+              <div className="p-3.5 bg-[#050814] border border-slate-800/90 rounded space-y-1">
                 <div className="font-bold text-pink-300">OBSERVE</div>
                 <p className="text-[11px] text-slate-400">Perform Observation Duty to maintain stability as anomalies occur.</p>
               </div>
-              <div className="p-3.5 bg-[#050816] border border-slate-800 rounded space-y-1">
-                <div className="font-bold text-purple-300">DISCOVER</div>
-                <p className="text-[11px] text-slate-400">Unlock deeper partitions and reveal the truth behind the project.</p>
+              <div className="p-3.5 bg-[#050814] border border-slate-800/90 rounded space-y-1">
+                <div className="font-bold text-slate-200">DISCOVER</div>
+                <p className="text-[11px] text-slate-400">Unlock deeper partitions and reveal the truth behind Project VOID.</p>
               </div>
             </div>
           </section>
 
           {/* =========================================================================
-              SCREEN 06: THE SYSTEM
-             ========================================================================= */}
-          <section id="system" className="space-y-3 scroll-mt-20">
-            <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
-              05 // THE SYSTEM
-            </div>
-            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
-              <p>
-                You start with a minimal recovery desktop. As you investigate, the system installs new components:
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-400 pt-1">
-                <div>• Terminal Shell (`sh-4.09`)</div>
-                <div>• Case File Dossier</div>
-                <div>• Observer Telemetry</div>
-                <div>• CCTV Camera Feeds</div>
-                <div>• Memory Hex Buffer</div>
-                <div>• Security Matrix</div>
-                <div>• NetSeek Intranet</div>
-                <div>• Operator Messages</div>
-                <div>• Reality Core</div>
-              </div>
-            </div>
-          </section>
-
-          {/* =========================================================================
-              SCREEN 07: THE ANOMALY
+              SCREEN 06: THE ANOMALY
              ========================================================================= */}
           <section className="space-y-3 scroll-mt-20">
             <div className="text-[11px] font-bold text-pink-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
-              06 // THE ANOMALY
+              05 // THE ANOMALY
             </div>
-            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-3 text-xs leading-relaxed text-slate-300">
+            <div className="p-5 bg-[#050814] border border-slate-800/90 rounded space-y-3 text-xs leading-relaxed text-slate-300">
               <p>
-                The computer does not remain static. As you progress into later acts, system stability begins to drain.
+                In Act III, the computer's background cognitive daemon awakens. System stability begins to drain over time.
               </p>
               <p className="text-slate-400">
-                Neglecting the Anomaly leads to screen corruption, false telemetry readings, and hostile daemon intervention. Operators must use the <strong>OBSERVER</strong> application to perform multi-step stabilization routines.
+                Operators must use the <strong>OBSERVER</strong> application to perform a multi-step signal sweep and telemetry confirmation to restore stability and prevent system collapse.
               </p>
             </div>
           </section>
 
           {/* =========================================================================
-              SCREEN 08: ACHIEVEMENTS & PROFILE
+              SCREEN 07: OPERATOR PROFILE & TELEMETRY
              ========================================================================= */}
           <section id="profile" className="space-y-3 scroll-mt-20">
             <div className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
-              07 // OPERATOR PROFILE & ACHIEVEMENTS
+              06 // OPERATOR PROFILE & PROGRESS
             </div>
-            <div className="p-5 bg-[#050816] border border-slate-800 rounded space-y-4 text-xs">
+            <div className="p-5 bg-[#050814] border border-slate-800/90 rounded space-y-4 text-xs">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-slate-200 font-bold">RECOVERY TELEMETRY TRACKER</div>
+                  <div className="text-slate-200 font-bold">RECOVERY TELEMETRY DOSSIER</div>
                   <div className="text-[11px] text-slate-400">
-                    42 System Events, 12 Branching Endings, and Case File intelligence.
+                    Live progression tracker with achievements and branching endings.
                   </div>
                 </div>
                 <button
                   onClick={() => {
-                    sound.playClick();
+                    try { sound.playClick(); } catch {}
                     setIsProfileOpen(true);
                   }}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 rounded text-xs font-bold flex items-center space-x-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 bg-[#080d22] hover:bg-[#0c1433] text-cyan-300 border border-slate-700 rounded text-xs font-bold flex items-center space-x-1.5 cursor-pointer transition-colors"
                 >
                   <User size={13} />
                   <span>VIEW PROFILE</span>
                 </button>
               </div>
 
+              {/* Progress Summary Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                 <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
-                  <div className="text-slate-500 text-[10px]">ACT</div>
+                  <div className="text-slate-500 text-[10px]">CURRENT ACT</div>
                   <div className="text-pink-400 font-bold">ACT {activeStory.act || 1}</div>
                 </div>
                 <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <div className="text-slate-500 text-[10px]">ACHIEVEMENTS</div>
-                  <div className="text-amber-400 font-bold">{(activeStory.unlockedEvents || []).length} / 42</div>
+                  <div className="text-cyan-300 font-bold">{unlockedAchievements} / 42</div>
                 </div>
                 <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <div className="text-slate-500 text-[10px]">CASE FILE</div>
-                  <div className="text-purple-400 font-bold">
-                    {Math.min(100, Math.round((Object.keys(activeStory.caseFileDiscoveries || {}).length / 12) * 100))}%
-                  </div>
+                  <div className="text-slate-200 font-bold">{caseFilePercent}%</div>
                 </div>
                 <div className="p-2.5 bg-[#080d22] border border-slate-800/80 rounded">
                   <div className="text-slate-500 text-[10px]">ENDINGS</div>
-                  <div className="text-green-400 font-bold">{(activeStory.endingDiscovered || []).length} / 12</div>
+                  <div className="text-slate-200 font-bold">{discoveredEndings} / 12</div>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SCREEN 08: WIKI OVERVIEW
+             ========================================================================= */}
+          <section className="space-y-3 scroll-mt-20">
+            <div className="text-[11px] font-bold text-slate-400 tracking-wider uppercase border-b border-slate-800 pb-1.5">
+              07 // PROJECT VOID WIKI
+            </div>
+            <div className="p-5 bg-[#050814] border border-slate-800/90 rounded flex items-center justify-between text-xs">
+              <div>
+                <div className="text-slate-200 font-bold">LORE ENCYCLOPEDIA</div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Five structured archives: PROJECT, PEOPLE, EVENTS, SYSTEMS, ANOMALY.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  try { sound.playClick(); } catch {}
+                  setIsWikiOpen(true);
+                }}
+                className="px-3.5 py-1.5 bg-[#080d22] hover:bg-[#0c1433] text-cyan-300 border border-slate-700 rounded text-xs font-bold flex items-center space-x-1.5 cursor-pointer transition-colors"
+              >
+                <BookOpen size={13} />
+                <span>OPEN WIKI</span>
+              </button>
             </div>
           </section>
 
@@ -390,7 +400,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {/* Credits Box */}
-              <div className="p-4 bg-[#050816] border border-slate-800 rounded space-y-2">
+              <div className="p-4 bg-[#050814] border border-slate-800/90 rounded space-y-2">
                 <div className="text-slate-200 font-bold">VOID//OS</div>
                 <p className="text-[11px] text-slate-400">
                   Created and designed by <strong className="text-slate-200">Paarth</strong>.
@@ -407,10 +417,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
               </div>
 
               {/* Feedback Box */}
-              <div className="p-4 bg-[#050816] border border-slate-800 rounded space-y-2">
+              <div className="p-4 bg-[#050814] border border-slate-800/90 rounded space-y-2">
                 <div className="text-slate-200 font-bold">FEEDBACK</div>
                 <p className="text-[11px] text-slate-400">
-                  Found an anomaly or have a suggestion?
+                  Report issues or submit suggestions:
                 </p>
                 <a
                   href="mailto:paarth.archive@gmail.com?subject=VOID//OS%20Feedback"
@@ -426,12 +436,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
           {/* =========================================================================
               SCREEN 10: BOTTOM PLAY CTA
              ========================================================================= */}
-          <div className="pt-6 text-center">
+          <div className="pt-4 text-center">
             <button
               onClick={handlePlayClick}
-              className="px-10 py-3.5 bg-slate-900 hover:bg-cyan-950 text-cyan-300 font-bold text-sm tracking-widest border border-cyan-500 rounded transition-all cursor-pointer"
+              className="px-8 py-3 bg-[#080d22] hover:bg-[#0c1433] text-cyan-300 font-bold text-xs tracking-widest border border-cyan-500/70 hover:border-cyan-400 rounded transition-all cursor-pointer"
             >
-              BOOT RECOVERY TERMINAL [v1.3.0]
+              BOOT RECOVERY TERMINAL [v1.3.2]
             </button>
           </div>
 
@@ -447,6 +457,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchGame, storySta
             setIsProfileOpen(false);
             setIsWikiOpen(true);
           }}
+          onResetProgress={onResetProgress}
         />
       )}
 

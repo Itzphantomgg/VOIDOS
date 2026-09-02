@@ -1019,6 +1019,36 @@ Look at the task manager.`,
     window.location.reload();
   };
 
+  const handleResetProgress = () => {
+    try {
+      sound.playGlitch();
+    } catch {}
+
+    // Reset story state to initial clean state
+    setStory(initialStoryState);
+
+    // Reset VFS to initial clean state
+    setVfs(initialVFSNodes);
+
+    // Close all open windows
+    setWindows([]);
+    setActiveWindowId(null);
+
+    // Persist clean story + clean VFS while preserving user settings/preferences
+    saveGameState({
+      story: initialStoryState,
+      vfs: initialVFSNodes,
+      settings,
+    });
+
+    spawnNotification({
+      appId: 'system',
+      title: 'RECOVERY DATA ERASED',
+      message: 'Campaign progress reset. New session available.',
+      severity: 'warning',
+    }, 'NORMAL');
+  };
+
   // Filter visible icons based on progressive unlocks
   const visibleDesktopIcons = masterDesktopIcons.filter(icon => 
     (story.unlockedApps || []).includes(icon.appId)
@@ -1028,7 +1058,11 @@ Look at the task manager.`,
     <div className="h-full w-full overflow-hidden flex flex-col relative">
       {/* 1. Landing Page View */}
       {viewMode === 'landing' && (
-        <LandingPage onLaunchGame={() => setViewMode('boot')} storyState={story} />
+        <LandingPage
+          onLaunchGame={() => setViewMode('boot')}
+          storyState={story}
+          onResetProgress={handleResetProgress}
+        />
       )}
 
       {/* 2. Boot Screen Sequence */}
